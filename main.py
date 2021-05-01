@@ -109,6 +109,12 @@ parser.add_argument(
     help='shuffle training example at the beginning of each epoch',
 )
 
+parser.add_argument(
+    '--data_aug',
+    type=str,
+    choices=['paraphrase', 'backtranslate', 'both'],
+    help='which data augmentation scheme to use in training')
+
 # Optimization arguments.
 parser.add_argument(
     '--epochs',
