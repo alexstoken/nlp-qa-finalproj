@@ -207,6 +207,17 @@ class QADataset(Dataset):
             # Unpack QA sample and tokenize passage/question.
             qid, passage, question, answer_start, answer_end = self.samples[idx]
 
+            # do data augmentation here
+            if self.args.data_aug == 'paraphrase':
+                print(f'Building dataset with {self.args.data_aug} augmentation')
+                pass
+            elif self.args.data_aug == 'backtranslate':
+                print(f'Building dataset with {self.args.data_aug} augmentation')
+                pass
+            elif self.args.data_aug == 'both':
+                print(f'Building dataset with {self.args.data_aug} augmentation')
+                pass
+
             # Convert words to tensor.
             passage_ids = torch.tensor(
                 self.tokenizer.convert_tokens_to_ids(passage)
