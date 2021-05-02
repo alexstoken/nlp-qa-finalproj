@@ -36,7 +36,6 @@ from data import QADataset, Tokenizer, Vocabulary
 from model import BaselineReader
 from utils import cuda, search_span_endpoints, unpack
 
-
 _TQDM_BAR_SIZE = 75
 _TQDM_LEAVE = False
 _TQDM_UNIT = ' batches'
@@ -44,11 +43,10 @@ _TQDM_OPTIONS = {
     'ncols': _TQDM_BAR_SIZE, 'leave': _TQDM_LEAVE, 'unit': _TQDM_UNIT
 }
 
-
 parser = argparse.ArgumentParser()
 
 # Training arguments.
-parser.add_argument('--device', type=int)
+parser.add_argument('--device', type=int, default=0)
 parser.add_argument(
     '--use_gpu',
     action='store_true',
@@ -84,6 +82,30 @@ parser.add_argument(
     type=str,
     required=True,
     help='dev dataset path',
+)
+parser.add_argument(
+    '--num_answers',
+    type=int,
+    default=1,
+    help='Max number of answers per question',
+)
+parser.add_argument(
+    '--unique_samples',
+    type=bool,
+    default=False,
+    help='Whether tuple (passage, question, answer_start, answer_end) should be unique',
+)
+parser.add_argument(
+    '--lowercase_passage',
+    type=bool,
+    default=True,
+    help='whether to lowercase the passage text',
+)
+parser.add_argument(
+    '--lowercase_question',
+    type=str,
+    default=True,
+    help='whether to lowercase the question text',
 )
 parser.add_argument(
     '--max_context_length',
@@ -245,15 +267,10 @@ def _early_stop(args, eval_history):
     Returns:
         Boolean indicating whether training should stop.
     """
-    return (
-        len(eval_history) > args.early_stop
-        and not any(eval_history[-args.early_stop:])
-    )
+    return (len(eval_history) > args.early_stop and not any(eval_history[-args.early_stop:]))
 
 
-def _calculate_loss(
-    start_logits, end_logits, start_positions, end_positions
-):
+def _calculate_loss(start_logits, end_logits, start_positions, end_positions):
     """
     Calculates cross-entropy loss for QA samples, which is defined as
     the mean of the loss values incurred by the starting and ending position
@@ -434,9 +451,9 @@ def write_predictions(args, model, dataset):
                 start_probs = unpack(batch_start_probs[j])
                 end_probs = unpack(batch_end_probs[j])
                 start_index, end_index = search_span_endpoints(
-                        start_probs, end_probs
+                    start_probs, end_probs
                 )
-                
+
                 # Grab predicted span.
                 pred_span = ' '.join(passage[start_index:(end_index + 1)])
 
@@ -522,7 +539,7 @@ def main(args):
             if eval_loss < best_eval_loss:
                 best_eval_loss = eval_loss
                 torch.save(model.state_dict(), args.model_path)
-            
+
             print(
                 f'epoch = {epoch} | '
                 f'train loss = {train_loss:.6f} | '

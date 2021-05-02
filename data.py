@@ -7,9 +7,10 @@ Author:
 import collections
 import itertools
 import torch
-
+from typing import *
 from torch.utils.data import Dataset
 from random import shuffle
+import numpy as np
 from utils import cuda, load_dataset
 
 
@@ -34,6 +35,7 @@ class Vocabulary:
         encoding: A dictionary mapping words (string) to indices (int).
         decoding: A dictionary mapping indices (int) to words (string).
     """
+
     def __init__(self, samples, vocab_size):
         self.words = self._initialize(samples, vocab_size)
         self.encoding = {word: index for (index, word) in enumerate(self.words)}
@@ -58,12 +60,12 @@ class Vocabulary:
             for token in itertools.chain(passage, question):
                 vocab[token.lower()] += 1
         top_words = [
-            word for (word, _) in
-            sorted(vocab.items(), key=lambda x: x[1], reverse=True)
-        ][:vocab_size]
+                        word for (word, _) in
+                        sorted(vocab.items(), key=lambda x: x[1], reverse=True)
+                    ][:vocab_size]
         words = [PAD_TOKEN, UNK_TOKEN] + top_words
         return words
-    
+
     def __len__(self):
         return len(self.words)
 
@@ -84,6 +86,7 @@ class Tokenizer:
         pad_token_id: Index of `PAD_TOKEN` (int).
         unk_token_id: Index of `UNK_TOKEN` (int).
     """
+
     def __init__(self, vocabulary):
         self.vocabulary = vocabulary
         self.pad_token_id = self.vocabulary.encoding[PAD_TOKEN]
@@ -137,16 +140,34 @@ class QADataset(Dataset):
         tokenizer: `Tokenizer` object.
         batch_size: Int. The number of example in a mini batch.
     """
+
     def __init__(self, args, path):
         self.args = args
         self.meta, self.elems = load_dataset(path)
-        self.samples = self._create_samples()
+        self.samples = self._create_examples(
+            self.elems,
+            num_answers=args.num_answers,
+            unique_samples=args.unique_samples,
+            lowercase_passage=args.lowercase_passage,
+            lowercase_question=args.lowercase_question,
+            max_context_length=args.max_context_length,
+            max_question_length=args.max_question_length,
+        )
         self.tokenizer = None
-        self.batch_size = args.batch_size if 'batch_size' in args else 1
-        self.pad_token_id = self.tokenizer.pad_token_id \
-            if self.tokenizer is not None else 0
+        self.batch_size: int = args.batch_size
+        self.pad_token_id: int = self.tokenizer.pad_token_id if (self.tokenizer is not None) else 0
 
-    def _create_samples(self):
+    @classmethod
+    def _create_examples(
+            cls,
+            elems: List[Dict],
+            num_answers: int,
+            unique_samples: bool,
+            lowercase_passage: bool,
+            lowercase_question: bool,
+            max_context_length: int,
+            max_question_length: int,
+    ):
         """
         Formats raw examples to desired form. Any passages/questions longer
         than max sequence length will be truncated.
@@ -154,12 +175,12 @@ class QADataset(Dataset):
         Returns:
             A list of words (string).
         """
-        samples = []
-        for elem in self.elems:
-            # Unpack the context paragraph. Shorten to max sequence length.
+        examples: List[Tuple] = []
+        for elem in elems:
+            # Unpack the context paragraph (passage). Shorten to max sequence length.
             passage = [
                 token.lower() for (token, offset) in elem['context_tokens']
-            ][:self.args.max_context_length]
+            ][:max_context_length]
 
             # Each passage has several questions associated with it.
             # Additionally, each question has multiple possible answer spans.
@@ -167,18 +188,18 @@ class QADataset(Dataset):
                 qid = qa['qid']
                 question = [
                     token.lower() for (token, offset) in qa['question_tokens']
-                ][:self.args.max_question_length]
+                ][:max_question_length]
 
                 # Select the first answer span, which is formatted as
                 # (start_position, end_position), where the end_position
                 # is inclusive.
                 answers = qa['detected_answers']
                 answer_start, answer_end = answers[0]['token_spans'][0]
-                samples.append(
+                examples.append(
                     (qid, passage, question, answer_start, answer_end)
                 )
                 
-        return samples
+        return examples
 
     def _create_data_generator(self, shuffle_examples=False):
         """
@@ -206,17 +227,6 @@ class QADataset(Dataset):
         for idx in example_idxs:
             # Unpack QA sample and tokenize passage/question.
             qid, passage, question, answer_start, answer_end = self.samples[idx]
-
-            # do data augmentation here
-            if self.args.data_aug == 'paraphrase':
-                print(f'Building dataset with {self.args.data_aug} augmentation')
-                pass
-            elif self.args.data_aug == 'backtranslate':
-                print(f'Building dataset with {self.args.data_aug} augmentation')
-                pass
-            elif self.args.data_aug == 'both':
-                print(f'Building dataset with {self.args.data_aug} augmentation')
-                pass
 
             # Convert words to tensor.
             passage_ids = torch.tensor(
