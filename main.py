@@ -484,7 +484,9 @@ def main(args):
         print()
 
     # Set up datasets.
+    print('Creating train dataset: ')
     train_dataset = QADataset(args, args.train_path)
+    print('Creating dev dataset: ')
     dev_dataset = QADataset(args, args.dev_path)
 
     # Create vocabulary and tokenizer.

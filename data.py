@@ -175,11 +175,12 @@ class QADataset(Dataset):
         Returns:
             A list of words (string).
         """
+        max_num_answers = 0
         examples: List[Tuple] = []
         for elem in elems:
             # Unpack the context paragraph (passage). Shorten to max sequence length.
             passage = [
-                token.lower() for (token, offset) in elem['context_tokens']
+                token.lower() if lowercase_passage else token for (token, offset) in elem['context_tokens']
             ][:max_context_length]
 
             # Each passage has several questions associated with it.
@@ -187,18 +188,22 @@ class QADataset(Dataset):
             for qa in elem['qas']:
                 qid = qa['qid']
                 question = [
-                    token.lower() for (token, offset) in qa['question_tokens']
+                    token.lower() if lowercase_question else token for (token, offset) in qa['question_tokens']
                 ][:max_question_length]
 
-                # Select the first answer span, which is formatted as
+                # Select one or more answer spans, which is formatted as
                 # (start_position, end_position), where the end_position
                 # is inclusive.
-                answers = qa['detected_answers']
-                answer_start, answer_end = answers[0]['token_spans'][0]
-                examples.append(
-                    (qid, passage, question, answer_start, answer_end)
-                )
-                
+                answer_examples = []
+                for answer in qa['detected_answers']:
+                    answer_start, answer_end = answer['token_spans'][0]
+                    answer_examples.append((qid, passage, question, answer_start, answer_end))
+                max_num_answers = max(max_num_answers, len(answer_examples))
+                if num_answers >= 1:
+                    answer_examples = answer_examples[:num_answers]
+                    # print(f'Restricting from {len(answer_examples)} to {num_answers} answers')
+                examples += answer_examples
+        print(f'Max number of answers in this dataset: {max_num_answers}')
         return examples
 
     def _create_data_generator(self, shuffle_examples=False):
