@@ -136,3 +136,62 @@ def search_span_endpoints(start_probs, end_probs, window=15):
                 max_end_index = end_index
 
     return (max_start_index, max_end_index)
+
+
+## Longest non-continguous substring/subarray, using dynamic programming
+def lcs(X, Y):
+    inputs_are_lists = type(X) in [list, tuple] and type(Y) in [list, tuple]
+    m = len(X)
+    n = len(Y)
+
+    ## DP arrays:
+    L = [[0] * (n + 1) for _ in range(m + 1)]
+    backtrack = [[' '] * (n + 1) for _ in range(m + 1)]
+
+    for i in range(1, m + 1):
+        for j in range(1, n + 1):
+            if X[i - 1] == Y[j - 1]:
+                L[i][j] = L[i - 1][j - 1] + 1
+                backtrack[i][j] = '⬉'
+            else:
+                if L[i - 1][j] > L[i][j - 1]:
+                    backtrack[i][j] = '↑'
+                else:
+                    backtrack[i][j] = '←'
+                L[i][j] = max(L[i - 1][j], L[i][j - 1])
+
+    ## Go backwards and find the longest NON-CONTIGUOUS substring/subarray
+    if inputs_are_lists:
+        common = []  ## Works for lists of string/integers
+    else:
+        common = ''
+    i = m
+    j = n
+    while i != 0 and j != 0:
+        if backtrack[i][j] == '←':
+            j = j - 1
+        elif backtrack[i][j] == '↑':
+            i = i - 1
+        else:
+            if inputs_are_lists:
+                common.append(X[i - 1])
+            else:
+                common += X[i - 1]
+            i = i - 1
+            j = j - 1
+    common = common[::-1]
+    ## L[m][n] contains the length of LCS of X[0..n-1] and Y[0..m-1]
+    assert len(common) == L[m][n]
+    return L[m][n], common
+
+
+if __name__ == '__main__':
+    assert lcs('abc', 'abc') == (3, 'abc')
+    assert lcs('xyzhatsourdough', 'thatsourmantra') == (7, 'hatsour')
+    assert lcs('xyzhatANOTHERSTRINGsourdough', 'thatsourmantra') == (7, 'hatsour')
+    assert lcs(
+        ['what', 'in', 'the', 'world', '!', 'That', '...', 'is', 'that', 'what', 'I', 'think', '...', 'this', 'is',
+         'amazing', '!'],
+        ['arguably', 'the', 'greatest', 'F1', 'driver', 'in', 'the', 'world', ',', 'Lewis', 'Hamilton', 'is', '36',
+         'this', 'January'],
+    ) == (5, ['in', 'the', 'world', 'is', 'this'])
