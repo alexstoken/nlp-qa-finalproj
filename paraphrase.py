@@ -167,7 +167,7 @@ if __name__ == '__main__':
     )
     parser.add_argument(
         '--score_n_gram',
-        type=float,
+        type=int,
         default=1,
         help='output dataset path. Should be a .jsonl.gz file',
     )
