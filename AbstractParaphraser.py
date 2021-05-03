@@ -37,7 +37,7 @@ class AbstractParaphraser(ABC):
 
     @classmethod
     def tokenize(cls, string: str) -> List[str]:
-        return word_tokenize(string)
+        return [x.replace('``', '"') for x in word_tokenize(string)]
 
     def paraphrase(
             self,
@@ -186,9 +186,9 @@ class AbstractParaphraser(ABC):
         for token in tokens:
             idx = string.find(token, prev_token_idx)
             if idx == -1:
-                raise ValueError(f'Cannot find token "{token}" after index {prev_token_idx} in string "{string}"')
-            prev_token_idx = idx + 1
+                idx = prev_token_idx
             tokens_idxs.append([token, idx])
+            prev_token_idx = idx + 1
         assert len(tokens_idxs) == len(tokens)
         return tokens_idxs
 

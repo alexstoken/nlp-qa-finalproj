@@ -75,7 +75,7 @@ def paraphrase(args):
         if (i+1) % 10 == 0:
             now = time.time()
             print(f'Took {(now - start):.3f} seconds total to paraphrase {i+1} examples '
-                  f'({(now - start)/(i+1):.3f} examples/sec).')
+                  f'({(now - start)/(i+1):.3f} seconds/example).')
 
     with gzip.open(output_path, 'wb') as out:
         paraphrased_examples.insert(0, meta)
