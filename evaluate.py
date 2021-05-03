@@ -187,3 +187,5 @@ if __name__ == '__main__':
     predictions = read_predictions(args.output_path)
     metrics = evaluate(answers, predictions, args.skip_no_answer)
     print(metrics)
+    
+    
