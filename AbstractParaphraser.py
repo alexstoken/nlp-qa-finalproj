@@ -42,7 +42,7 @@ class AbstractParaphraser(ABC):
     def paraphrase(
             self,
             passage: str,
-            passage_tokens: List[str],
+            passage_tokens: List[Tuple[str, int]],
     ) -> Tuple[str, List[str]]:
         ## Driver function
         start = time.time()
@@ -50,6 +50,8 @@ class AbstractParaphraser(ABC):
             passage,
             normalized_chunk_length=self.args.normalized_chunk_length
         )
+        # print(f'text_chunks: {text_chunks}')
+        # print(f'text_chunks_tokens_list: {text_chunks_tokens_list}')
         paraphrase_chunks: List[str] = []
         paraphrase_tokens: List[str] = []
         logging.info(f'\nDivided input into {len(text_chunks)} chunks...')
@@ -70,7 +72,7 @@ class AbstractParaphraser(ABC):
                 print_bottom_k=self.args.print_bottom_k_paraphrases,
             )
             if (paraphrase_chunk, paraphrase_tokens_chunk) == (None, None):
-                paraphrase_chunk, paraphrase_tokens_chunk = text_chunk, passage_tokens
+                paraphrase_chunk, paraphrase_tokens_chunk = text_chunk, [x[0] for x in passage_tokens]
             paraphrase_chunks.append(paraphrase_chunk)
             paraphrase_tokens += paraphrase_tokens_chunk
         paraphrase: str = self.args.paraphrase_joiner.join(paraphrase_chunks)
@@ -174,6 +176,22 @@ class AbstractParaphraser(ABC):
             ]
         }
     '''
+    @classmethod
+    def get_token_idxs(cls, string: str, tokens: List[str]) -> List[Tuple[str, int]]:
+        tokens_idxs = []
+        # print()
+        # print(string)
+        # print(tokens)
+        prev_token_idx = 0
+        for token in tokens:
+            idx = string.find(token, prev_token_idx)
+            if idx == -1:
+                raise ValueError(f'Cannot find token "{token}" after index {prev_token_idx} in string "{string}"')
+            prev_token_idx = idx + 1
+            tokens_idxs.append([token, idx])
+        assert len(tokens_idxs) == len(tokens)
+        return tokens_idxs
+
 
     def paraphrase_question(self, example: Dict) -> Dict:
         """
@@ -186,10 +204,15 @@ class AbstractParaphraser(ABC):
         passage_tokens: List[str] = [x[0] for x in example['context_tokens']]
         for qa_dict in example['qas']:
             question: str = qa_dict['question']
-            question_tokens: List[str] = qa_dict['question_tokens']
+            question_tokens: List[Tuple[str, int]] = qa_dict['question_tokens']
+            qa_dict['question_original']: str = question
+            qa_dict['question_tokens_original']: List[Tuple[str, int]] = question_tokens
             paraphrased_question, paraphrased_question_tokens = self.paraphrase(question, question_tokens)
             qa_dict['question']: str = paraphrased_question
-            qa_dict['question_tokens']: List[str] = paraphrased_question_tokens
+            qa_dict['question_tokens']: List[Tuple[str, int]] = self.get_token_idxs(
+                paraphrased_question, paraphrased_question_tokens
+            )
+            qa_dict['question_is_paraphrased']: bool = True
             # for answer_dict in qa_dict['detected_answers']:
             #     passage_tokens_ans_start_idx = answer_dict['token_spans'][0][0]
             #     passage_tokens_ans_end_idx = answer_dict['token_spans'][0][1] + 1

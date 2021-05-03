@@ -56,12 +56,13 @@ def paraphrase(args):
     paraphraser: AbstractParaphraser = ParaphraserSubclass(args, device)
 
     paraphrased_examples = []
-    for i, example in enumerate(examples):
+    start = time.time()
+    for i, example in enumerate(examples[:35]):
         ## Options ['question', 'around_answer_sent', 'answer', 'answer_sent']
+        logging.info('=' * 50)
+        logging.info('=' * 50)
+        logging.info(f'Paraphrasing example {i+1} of {len(examples)}...\n')
         if args.paraphrase == 'question':
-            logging.info('=' * 50)
-            logging.info('=' * 50)
-            logging.info(f'Paraphrasing question {i+1} of {len(examples)}...\n')
             paraphrased_examples.append(paraphraser.paraphrase_question(example))
         elif args.paraphrase == 'around_answer_sent':
             paraphrased_examples.append(paraphraser.paraphrase_around_answer_sent(example))
@@ -71,14 +72,19 @@ def paraphrase(args):
             paraphrased_examples.append(paraphraser.paraphrase_question(example))
         else:
             raise NotImplementedError(f'Cannot paraphrase "{args.paraphrase}"')
+        if (i+1) % 10 == 0:
+            now = time.time()
+            print(f'Took {(now - start):.3f} seconds total to paraphrase {i+1} examples '
+                  f'({(now - start)/(i+1):.3f} examples/sec).')
 
     with gzip.open(output_path, 'wb') as out:
+        paraphrased_examples.insert(0, meta)
         for ex in paraphrased_examples:
             ## Ref: https://stackoverflow.com/a/39451012
-            out.write((json.dumps(ex, indent=4) + '\n').encode('utf-8'))
+            out.write((json.dumps(ex) + '\n').encode('utf-8'))
 
     with io.open(output_args_path, 'w+') as out:
-        out.write(json.dumps(vars(args)))
+        out.write(json.dumps(vars(args), indent=4))
 
 
 if __name__ == '__main__':
