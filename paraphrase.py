@@ -422,6 +422,7 @@ class PegasusParaphraser(AbstractiveSummarizationParaphraser):
         super().__init__(args)
         assert args.pretrained_model_name in self.PRETRAINED_MODEL_NAMES
         self.pretrained_model_name = args.pretrained_model_name
+        print(f'Loading Pegasus ({self.pretrained_model_name})')
         model = PegasusForConditionalGeneration.from_pretrained(self.pretrained_model_name)
         if args.use_gpu:
             model = cuda(args, model)
@@ -522,8 +523,9 @@ def paraphrase(args):
 
     output_file_name = f'{dataset_name}'
     output_file_name += f'-{args.paraphrase}'
+    ParaphraserSubclass: Paraphraser.__class__ = None
     if args.architecture == 'pegasus':
-        paraphraser: Paraphraser = PegasusParaphraser(args)
+        ParaphraserSubclass: Paraphraser.__class__ = PegasusParaphraser
         output_file_name += f'-{args.pretrained_model_name.replace("google/", "")}'
         output_file_name += f'-chk{args.normalized_chunk_length}'
         output_file_name += f'-mul{args.max_len_multiplier}'
@@ -531,16 +533,18 @@ def paraphrase(args):
         output_file_name += f'-temp{args.temperature}'
     else:
         raise NotImplementedError(f'Unsupported architecture: {args.architecture}')
-
     if args.use_scoring_function:
         output_file_name += f'-score'
         output_file_name += f'-th{args.score_threshold}'
         output_file_name += f'-ngram{args.score_n_gram}'
 
     output_dir = os.sep.join(args.input_path.split(os.sep)[:-1])
-    output_path = os.path.join(output_dir, output_file_name, '.jsonl.gz')
-    output_args_path = os.path.join(output_dir, output_file_name, '.args.json')
+    output_path = os.path.join(output_dir, output_file_name + '.jsonl.gz')
+    output_args_path = os.path.join(output_dir, output_file_name + '.args.json')
     print(f'We will write to:\n  {output_path}\n  {output_args_path}')
+
+    ## Load paraphraser to memory
+    paraphraser: Paraphraser = ParaphraserSubclass(args)
 
     paraphrased_examples = []
     for example in examples:
