@@ -11,7 +11,10 @@ from tqdm import tqdm
 
 QID_KEY = 'qid'
 PASSAGE_TOKENS_KEY = 'passage_tokens'
+PASSAGE_KEY = 'passage'
 QUESTION_TOKENS_KEY = 'question_tokens'
+QUESTION_KEY = 'question'
+ANSWER_KEY = 'answer'
 ANSWER_START_IDX_KEY = 'answer_start_idx'
 ANSWER_END_IDX_KEY = 'answer_end_idx'
 

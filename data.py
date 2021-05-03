@@ -177,21 +177,34 @@ class QADataset(Dataset):
         examples: List[Dict] = []
         for elem in elems:
             # Unpack the context paragraph (passage). Shorten to max sequence length.
-            passage_tokens = [
+            passage_tokens_idxs: List[Tuple[str, int]] = elem['context_tokens']
+            passage_tokens: List[str] = [
                 token.lower() if lowercase_passage else token
-                for (token, offset) in elem['context_tokens']
+                for (token, offset) in passage_tokens_idxs[:max_context_length]
             ]
-            passage_tokens = passage_tokens[:max_context_length]
+            ## Get the passage string and shorten it to to max sequence length.
+            passage: str = elem['context']
+            final_passage_token_idx: int = min(max_context_length, len(passage_tokens_idxs)) - 1
+            final_passage_token__start_idx: int = passage_tokens_idxs[final_passage_token_idx][1]
+            final_passage_token_len = len(passage_tokens_idxs[final_passage_token_idx][0])
+            final_passage_idx = final_passage_token__start_idx + final_passage_token_len
+            passage: str = passage[:final_passage_idx]
 
             # Each passage has several questions associated with it.
             # Additionally, each question has multiple possible answer spans.
             for qa in elem['qas']:
                 qid = qa['qid']
-                question_tokens = [
-                    token.lower() if lowercase_question else token
-                    for (token, offset) in qa['question_tokens']
+                question_tokens_idxs: List[Tuple[str, int]] = qa['question_tokens']
+                question_tokens: List[str] = [
+                    token.lower()
+                    for (token, offset) in question_tokens_idxs[:max_question_length]
                 ]
-                question_tokens = question_tokens[:max_question_length]
+                question: str = qa['question']
+                final_question_token_idx: int = min(max_question_length, len(question_tokens_idxs)) - 1
+                final_question_token_start_idx: int = question_tokens_idxs[final_question_token_idx][1]
+                final_question_token_len = len(question_tokens_idxs[final_question_token_idx][0])
+                final_question_idx = final_question_token_start_idx + final_question_token_len
+                question: str = question[:final_question_idx]
 
                 # Select one or more answer spans, which is formatted as
                 # (start_position, end_position), where the end_position
@@ -202,7 +215,9 @@ class QADataset(Dataset):
                     answer_examples.append({
                         QID_KEY: qid,
                         PASSAGE_TOKENS_KEY: passage_tokens,
+                        PASSAGE_KEY: passage,
                         QUESTION_TOKENS_KEY: question_tokens,
+                        QUESTION_KEY: question,
                         ANSWER_START_IDX_KEY: answer_start_idx,
                         ANSWER_END_IDX_KEY: answer_end_idx
                     })
