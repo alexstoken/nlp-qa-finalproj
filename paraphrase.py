@@ -61,7 +61,7 @@ def paraphrase(args):
         ## Options ['question', 'around_answer_sent', 'answer', 'answer_sent']
         logging.info('=' * 50)
         logging.info('=' * 50)
-        logging.info(f'Paraphrasing example {i+1} of {len(examples)}...\n')
+        logging.info(f'Paraphrasing example {i + 1} of {len(examples)}...\n')
         if args.paraphrase == 'question':
             paraphrased_examples.append(paraphraser.paraphrase_question(example))
         elif args.paraphrase == 'around_answer_sent':
@@ -72,14 +72,18 @@ def paraphrase(args):
             paraphrased_examples.append(paraphraser.paraphrase_answer_sent(example))
         else:
             raise NotImplementedError(f'Cannot paraphrase "{args.paraphrase}"')
-        if (i+1) % 10 == 0:
+        if (i + 1) % 10 == 0:
             now = time.time()
-            print(f'Took {(now - start):.3f} seconds total to paraphrase {i+1} examples '
-                  f'({(now - start)/(i+1):.3f} seconds/example).')
+            print(f'Took {(now - start):.3f} seconds total to paraphrase {i + 1} of {len(examples)} examples '
+                  f'({(now - start) / (i + 1):.3f} seconds/example).')
+            if (i + 1) % (len(examples) // 10) == 0:  ## Save 10 checkpoints
+                with gzip.open(os.path.join(output_dir, output_file_name + f'-{i + 1}' + '.jsonl.gz'), 'wb') as out:
+                    for ex in [meta] + paraphrased_examples:
+                        ## Ref: https://stackoverflow.com/a/39451012
+                        out.write((json.dumps(ex) + '\n').encode('utf-8'))
 
     with gzip.open(output_path, 'wb') as out:
-        paraphrased_examples.insert(0, meta)
-        for ex in paraphrased_examples:
+        for ex in [meta] + paraphrased_examples:
             ## Ref: https://stackoverflow.com/a/39451012
             out.write((json.dumps(ex) + '\n').encode('utf-8'))
 
