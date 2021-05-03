@@ -192,6 +192,13 @@ class AbstractParaphraser(ABC):
         assert len(tokens_idxs) == len(tokens)
         return tokens_idxs
 
+    @classmethod
+    def get_token_idxs_dummy(cls, string: str, tokens: List[str]) -> List[Tuple[str, int]]:
+        tokens_idxs = []
+        for token in tokens:
+            tokens_idxs.append([token, 0])
+        return tokens_idxs
+
 
     def paraphrase_question(self, example: Dict) -> Dict:
         """
@@ -209,7 +216,7 @@ class AbstractParaphraser(ABC):
             qa_dict['question_tokens_original']: List[Tuple[str, int]] = question_tokens
             paraphrased_question, paraphrased_question_tokens = self.paraphrase(question, question_tokens)
             qa_dict['question']: str = paraphrased_question
-            qa_dict['question_tokens']: List[Tuple[str, int]] = self.get_token_idxs(
+            qa_dict['question_tokens']: List[Tuple[str, int]] = self.get_token_idxs_dummy(
                 paraphrased_question, paraphrased_question_tokens
             )
             qa_dict['question_is_paraphrased']: bool = True
