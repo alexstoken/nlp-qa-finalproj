@@ -30,8 +30,9 @@ class Paraphraser(ABC):
         'here', 'than'
     }
 
-    def __init__(self, args):
+    def __init__(self, args, device):
         self.args = args
+        self.device = device
 
     @classmethod
     def tokenize(cls, string: str) -> List[str]:
@@ -381,7 +382,8 @@ class Paraphraser(ABC):
         hallucinated_unigrams: Set[str] = set(paraphrased_ngrams.keys()) \
                                           - set(passage_unigrams.keys()) \
                                           - cls.STOPWORDS - cls.PUNCTUATION
-        paraphrase_score = round(ngram_unique_counts / (num_tokens_overlaps + hallucinated_unigrams), 3)
+        num_hallucinated_unigrams: int = len(hallucinated_unigrams)
+        paraphrase_score = round(ngram_unique_counts / (num_tokens_overlaps + num_hallucinated_unigrams), 3)
         return paraphrase_score
 
     @classmethod
@@ -412,11 +414,11 @@ class MachineTranslationParaphraser(Paraphraser):
     
 
     PRETRAINED_MODEL_NAMES = '' # grab list from torch hub
-    def __init__(self, args):
-        super().__init__(args)
-        
+    def __init__(self, args, device):
+        super().__init__(args, device)
 
-        
+
+
         self.forward_model, self.backward_model  = self._load_translators()
         if args.use_gpu:
             model = cuda(args, model)
@@ -452,15 +454,12 @@ class PegasusParaphraser(AbstractiveSummarizationParaphraser):
         "google/pegasus-multi_news",
     ]
 
-    def __init__(self, args):
-        super().__init__(args)
+    def __init__(self, args, device):
+        super().__init__(args, device)
         assert args.pretrained_model_name in self.PRETRAINED_MODEL_NAMES
         self.pretrained_model_name = args.pretrained_model_name
         print(f'Loading Pegasus ({self.pretrained_model_name})')
-        model = PegasusForConditionalGeneration.from_pretrained(self.pretrained_model_name)
-        if args.use_gpu:
-            model = cuda(args, model)
-        self.model: PegasusForConditionalGeneration = model
+        self.model = PegasusForConditionalGeneration.from_pretrained(self.pretrained_model_name).to(self.device)
         self.tokenizer: PegasusTokenizer = PegasusTokenizer.from_pretrained(self.pretrained_model_name)
 
     def _generate_paraphrases(
@@ -484,8 +483,7 @@ class PegasusParaphraser(AbstractiveSummarizationParaphraser):
             padding='longest',
             max_length=max_length,
             return_tensors="pt"
-        )
-        tokenized_ids = cuda(self.args, tokenized_ids)
+        ).to(self.device)
         paraphrased_token_ids_list = self.model.generate(
             **tokenized_ids,
             max_length=max_length,
@@ -577,8 +575,18 @@ def paraphrase(args):
     output_args_path = os.path.join(output_dir, output_file_name + '.args.json')
     print(f'We will write to:\n  {output_path}\n  {output_args_path}')
 
+    ## Setup device:
+    device = torch.device('cpu')
+    if torch.cuda.is_available() and args.use_gpu:
+        device = args.device
+        assert isinstance(device, int)
+        assert args.device >= 0
+        torch.cuda.set_device(device)
+        device = torch.device('cuda')
+    print(f'We are running on {str(device)}')
+
     ## Load paraphraser to memory
-    paraphraser: Paraphraser = ParaphraserSubclass(args)
+    paraphraser: Paraphraser = ParaphraserSubclass(args, device)
 
     paraphrased_examples = []
     for example in examples:
@@ -610,7 +618,6 @@ if __name__ == '__main__':
     parser.add_argument(
         '--verbose',
         action='store_true',
-        default=False,
         help='Whether to print every paraphrase, top and bottom paraphrases, etc.',
     )
 
@@ -696,14 +703,14 @@ if __name__ == '__main__':
     )
     parser.add_argument(
         '--print_top_k_paraphrases',
-        type=bool,
-        default=False,
+        type=int,
+        default=1,
         help='output dataset path. Should be a .jsonl.gz file',
     )
     parser.add_argument(
         '--print_bottom_k_paraphrases',
-        type=bool,
-        default=False,
+        type=int,
+        default=1,
         help='output dataset path. Should be a .jsonl.gz file',
     )
     parser.add_argument(
