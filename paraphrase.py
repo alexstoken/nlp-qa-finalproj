@@ -57,7 +57,7 @@ def paraphrase(args):
 
     paraphrased_examples = []
     start = time.time()
-    for i, example in enumerate(examples[:35]):
+    for i, example in enumerate(examples):
         ## Options ['question', 'around_answer_sent', 'answer', 'answer_sent']
         logging.info('=' * 50)
         logging.info('=' * 50)
