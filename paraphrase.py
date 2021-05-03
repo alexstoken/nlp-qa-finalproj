@@ -526,6 +526,11 @@ def paraphrase(args):
         else:
             raise NotImplementedError(f'Cannot paraphrase "{args.paraphrase}"')
 
+    with gzip.open(output_path, 'wb') as out:
+        for ex in paraphrased_examples:
+            ## Ref: https://stackoverflow.com/a/39451012
+            out.write((json.dumps(ex) + '\n').encode('utf-8'))
+
     with io.open(output_args_path, 'w') as out:
         out.write(json.dumps(vars(args)))
 
