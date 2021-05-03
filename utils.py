@@ -195,3 +195,28 @@ if __name__ == '__main__':
         ['arguably', 'the', 'greatest', 'F1', 'driver', 'in', 'the', 'world', ',', 'Lewis', 'Hamilton', 'is', '36',
          'this', 'January'],
     ) == (5, ['in', 'the', 'world', 'is', 'this'])
+    
+def backtranslate_questions(train_dataset,  batch_size, forward_translate, backward_translate, n=None):
+    start = time.time()
+    new_samples: List[Tuple] = []
+    if n is None:
+        n = len(train_dataset.samples)
+    for batch_start in range(0, len(train_dataset.samples[:n]), batch_size):
+       
+        
+        # build a batch as a list
+        batch = []
+        batched_questions = []
+        for s in train_dataset.samples[batch_start:batch_start + batch_size]:
+            batched_questions.append(' '.join(s[2]))
+            batch.append(list(s))
+
+        batched_backtrans_qs = backtranslate(batched_questions, forward_translate, backward_translate)
+
+
+        for backtrans_q, new_sample in zip(batched_backtrans_qs, batch):
+            new_sample[2] = backtrans_q.split()
+            new_sample = tuple(new_sample)
+        new_samples += batch
+    #print(batch_start, time.time()-start)
+    return new_samples
