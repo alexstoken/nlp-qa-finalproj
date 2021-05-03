@@ -5,6 +5,7 @@ from abc import ABC, abstractmethod
 from transformers import PegasusForConditionalGeneration, PegasusTokenizer
 from collections import Counter
 import nltk
+import numpy as np
 from pprint import pprint
 
 nltk.download('punkt')
@@ -376,20 +377,22 @@ class AbstractParaphraser(ABC):
         num_tokens_overlaps, _ = lcs(passage_tokens, paraphrase_tokens)  ## Non-contiguous overlaps
         paraphrased_ngrams: Counter = get_ngrams(paraphrase_tokens, n_gram=n_gram)
         num_unique_ngrams: int = len(paraphrased_ngrams)
-        paraphrased_unigrams: Counter = get_ngrams(passage_tokens, n_gram=1)
+        paraphrased_unigrams: Counter = get_ngrams(paraphrase_tokens, n_gram=1)
         ## Can be replaced with NER step to detect unique named entities or an embedding step for different verbs:
-        hallucinated_unigrams: Set[str] = {x.lower() for x in paraphrased_unigrams.keys()} \
-                                          - {x.lower() for x in passage_unigrams.keys()} \
+        hallucinated_unigrams: Set[str] = {x.lower() for x in paraphrased_unigrams} \
+                                          - {x.lower() for x in passage_unigrams} \
                                           - cls.STOPWORDS - cls.PUNCTUATION
         num_hallucinated_unigrams: int = len(hallucinated_unigrams)
         ## Can be replaced with NER step to detect unique named entities or an embedding step for different verbs:
-        missing_unigrams: Set[str] = {x.lower() for x in passage_unigrams.keys()} \
-                                     - {x.lower() for x in paraphrased_unigrams.keys()} \
+        missing_unigrams: Set[str] = {x.lower() for x in passage_unigrams} \
+                                     - {x.lower() for x in paraphrased_unigrams} \
                                      - cls.STOPWORDS - cls.PUNCTUATION
         num_missing_unigrams: int = len(missing_unigrams)
-        paraphrase_score = round(num_unique_ngrams / (
-                num_tokens_overlaps + num_hallucinated_unigrams + num_missing_unigrams + 1
-        ), 3)
+        paraphrase_score = round(num_unique_ngrams / np.sum([
+            num_tokens_overlaps,
+            num_hallucinated_unigrams,
+            num_missing_unigrams
+        ]), 3)
         return paraphrase_score
 
     @classmethod
