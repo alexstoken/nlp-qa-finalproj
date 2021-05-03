@@ -33,23 +33,30 @@ class Paraphraser(ABC):
     def __init__(self, args):
         self.args = args
 
+    @classmethod
+    def tokenize(cls, string: str) -> List[str]:
+        return word_tokenize(string)
+
     def paraphrase(
             self,
             passage: str,
             passage_tokens: List[str],
     ) -> Tuple[str, List[str]]:
         ## Driver function
-        text_chunks: List[str] = self._chunk_passage(passage, normalized_chunk_length=self.args.normalized_chunk_length)
+        text_chunks, text_chunks_tokens_list = self._chunk_passage(
+            passage,
+            normalized_chunk_length=self.args.normalized_chunk_length
+        )
         paraphrase_chunks: List[str] = []
         paraphrase_tokens: List[str] = []
-        for text_chunk in text_chunks:
+        for text_chunk, text_chunk_tokens in zip(text_chunks, text_chunks_tokens_list):
             paraphrases_list, paraphrase_tokens_list = self._generate_paraphrases(
                 text_chunk,
                 max_length=int(round(self.args.max_len_multiplier * len(text_chunk.split(' ')))),
             )
             paraphrase_chunk, paraphrase_tokens_chunk = self._select_paraphrase(
                 passage=text_chunk,
-                passage_tokens=passage_tokens,
+                passage_tokens=text_chunk_tokens,
                 paraphrases_list=paraphrases_list,
                 paraphrase_tokens_list=paraphrase_tokens_list,
                 use_scoring_function=self.args.use_scoring_function,
@@ -58,6 +65,8 @@ class Paraphraser(ABC):
                 print_top_k=self.args.print_top_k_paraphrases,
                 print_bottom_k=self.args.print_bottom_k_paraphrases,
             )
+            if (paraphrase_chunk, paraphrase_tokens_chunk) == (None, None):
+                paraphrase_chunk, paraphrase_tokens_chunk = text_chunk, passage_tokens
             paraphrase_chunks.append(paraphrase_chunk)
             paraphrase_tokens += paraphrase_tokens_chunk
         paraphrase: str = self.args.paraphrase_joiner.join(paraphrase_chunks)
@@ -249,8 +258,8 @@ class Paraphraser(ABC):
             if paraphrase_score >= score_threshold:
                 return paraphrase, paraphrase_tokens
             else:
-                ## Return original passage and its tokens
-                return passage, passage_tokens
+                ## Use original passage and its tokens
+                return None, None
         else:
             ## Return the one with the highest beam search score:
             scored_paraphrases = [
@@ -272,13 +281,14 @@ class Paraphraser(ABC):
             ## Return those with highest rank:
             return paraphrases_list[0], paraphrase_tokens_list[0]
 
-    @staticmethod
+    @classmethod
     def _chunk_passage(
+            cls,
             passage: str,
             normalized_chunk_length: int,
             token_sep: str = ' ',
             line_sep: str = '.'
-    ) -> List[str]:
+    ) -> Tuple[List[str], List[List[str]]]:
         """
         Chunk the passage before feeding it into the Paraphraser.
         :param passage: string of the passage.
@@ -333,7 +343,11 @@ class Paraphraser(ABC):
                 else:
                     passage_chunks_concat.append(chunk)
         passage_chunks = passage_chunks_concat
-        return passage_chunks
+        passage_chunks_tokens = [
+            cls.tokenize(passage_chunk)
+            for passage_chunk in passage_chunks
+        ]
+        return passage_chunks, passage_chunks_tokens
 
     @classmethod
     def _calculate_paraphrase_score(
@@ -438,7 +452,7 @@ class PegasusParaphraser(AbstractiveSummarizationParaphraser):
             for paraphrase in self.tokenizer.batch_decode(paraphrased_token_ids_list, skip_special_tokens=True)
         ]
         paraphrase_tokens_list: List[List[str]] = [
-            word_tokenize(paraphrase) for paraphrase in paraphrases_list
+            self.tokenize(paraphrase) for paraphrase in paraphrases_list
         ]
         # paraphrase_tokens_list: List[List[str]] = [
         #     self.undo_sentencepiece_tokenization(
