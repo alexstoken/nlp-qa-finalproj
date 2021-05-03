@@ -4,7 +4,7 @@ Author:
     Shrey Desai
 """
 from typing import *
-import os, json, gzip, pickle, time
+import os, json, gzip, pickle, time, logging
 from collections import Counter
 
 import torch
@@ -257,10 +257,20 @@ def backtranslate(sent, forward, backward):
     backward = backward.eval()
     return backward.translate(forward.translate(sent))
 
-def load_translators(forward_model_path='transformer.wmt19.en-de.single_model', backward_model_path='transformer.wmt19.de-en.single_model'):
+
+def load_translators(forward_model_path='transformer.wmt19.en-de.single_model',
+                     backward_model_path='transformer.wmt19.de-en.single_model'):
     # Round-trip translations between English and German:
     forward = torch.hub.load('pytorch/fairseq', forward_model_path, tokenizer='moses', bpe='fastbpe')
     backward = torch.hub.load('pytorch/fairseq', backward_model_path, tokenizer='moses', bpe='fastbpe')
-    
+
     return forward, backward
-    
+
+
+def set_root_logger(log_level=logging.INFO, log_format='%(message)s'):
+    logging.basicConfig(format=log_format, level=log_level)
+    ## Forcefully set logging level if overridden by other libraries. Ref: https://stackoverflow.com/a/46710435
+    log_formatter = logging.Formatter(log_format)
+    logging.getLogger().setLevel(log_level)
+    for handler in logging.getLogger().handlers:
+        handler.setFormatter(log_formatter)
