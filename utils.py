@@ -240,3 +240,27 @@ def backtranslate_questions(train_dataset, batch_size, forward_translate, backwa
         new_samples += batch
     # print(batch_start, time.time()-start)
     return new_samples
+
+
+def backtranslate(sent, forward, backward):
+    """
+    Parameters
+    ----------
+    sent (str): sentence to be backtranslated
+    forward (torch.nn): model to translate from langauge 1 to language 2
+    backward (torch.nn): model to translate from langauge 2 to langauge 1
+    
+    Return:
+    backtrans_sent: backtranslated sentence
+    """
+    forward = forward.eval()
+    backward = backward.eval()
+    return backward.translate(forward.translate(sent))
+
+def load_translators():
+    # Round-trip translations between English and German:
+    forward = torch.hub.load('pytorch/fairseq', 'transformer.wmt19.en-de.single_model', tokenizer='moses', bpe='fastbpe')
+    backward = torch.hub.load('pytorch/fairseq', 'transformer.wmt19.de-en.single_model', tokenizer='moses', bpe='fastbpe')
+    
+    return forward, backward
+    
