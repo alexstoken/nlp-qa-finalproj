@@ -249,7 +249,8 @@ class Paraphraser(ABC):
             if paraphrase_score >= score_threshold:
                 return paraphrase, paraphrase_tokens
             else:
-                return None, None
+                ## Return original passage and its tokens
+                return passage, passage_tokens
         else:
             ## Return the one with the highest beam search score:
             scored_paraphrases = [
@@ -386,10 +387,10 @@ class PegasusParaphraser(AbstractiveSummarizationParaphraser):
 
     ## Found on HuggingFace search bar, from the PEGASUS paper released by Google: https://arxiv.org/pdf/1912.08777.pdf
     PRETRAINED_MODEL_NAMES = [
-        'google/pegasus-large',
-        'google/pegasus-xsum',
-        'google/pegasus-cnn_dailymail',
-        'google/pegasus-multi_news',
+        "google/pegasus-large",
+        "google/pegasus-xsum",
+        "google/pegasus-cnn_dailymail",
+        "google/pegasus-multi_news",
     ]
 
     def __init__(self, args):
@@ -511,6 +512,7 @@ def paraphrase(args):
     output_dir = os.sep.join(args.input_path.split(os.sep)[:-1])
     output_path = os.path.join(output_dir, output_file_name, '.jsonl.gz')
     output_args_path = os.path.join(output_dir, output_file_name, '.args.json')
+    print(f'We will write to:\n  {output_path}\n  {output_args_path}')
 
     paraphrased_examples = []
     for example in examples:
