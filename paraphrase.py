@@ -173,29 +173,23 @@ class Paraphraser(ABC):
         :return: example, with paraphrased question.
         """
         example = copy.deepcopy(example)
-        # passage: str = example['context']
-        # passage_tokens: List[str] = [x[0] for x in example['context_tokens']]
+        passage: str = example['context']
+        passage_tokens: List[str] = [x[0] for x in example['context_tokens']]
         for qa_dict in example['qas']:
-            logging.info('\n')
-            logging.info('='*50)
-            logging.info('='*50)
-            logging.info('Paraphrasing question...\n')
             question: str = qa_dict['question']
             question_tokens: List[str] = qa_dict['question_tokens']
-            question_paraphrase, question_paraphrase_tokens = self.paraphrase(question, question_tokens)
-            qa_dict['question'] = question_paraphrase
-            qa_dict['question_tokens'] = question_paraphrase_tokens
-            # for answer_dict in qa_dict['detected_answers']:
-            #     passage_tokens_ans_start_idx = answer_dict['token_spans'][0][0]
-            #     passage_tokens_ans_end_idx = answer_dict['token_spans'][0][1] + 1
-            #     ## Example `answer_tokens`:   ['Barney', 'Stinson', ',']
-            #     answer_tokens: List[str] = passage_tokens[passage_tokens_ans_start_idx:passage_tokens_ans_end_idx]
-            #     ## Example `answer`:   "Barney Stinson,"
-            #     answer: str = answer_dict['text']
-            #     passage_ans_start_idx = answer_dict['char_spans'][0][0]
-            #     passage_ans_end_idx = answer_dict['char_spans'][0][1] + 1
-            #     assert answer == passage[passage_ans_start_idx:passage_ans_end_idx]
-            #     assert isinstance(answer_tokens, list)
+            for answer_dict in qa_dict['detected_answers']:
+                passage_tokens_ans_start_idx = answer_dict['token_spans'][0][0]
+                passage_tokens_ans_end_idx = answer_dict['token_spans'][0][1] + 1
+                ## Example `answer_tokens`:   ['Barney', 'Stinson', ',']
+                answer_tokens: List[str] = passage_tokens[passage_tokens_ans_start_idx:passage_tokens_ans_end_idx]
+                ## Example `answer`:   "Barney Stinson,"
+                answer: str = answer_dict['text']
+                passage_ans_start_idx = answer_dict['char_spans'][0][0]
+                passage_ans_end_idx = answer_dict['char_spans'][0][1] + 1
+                assert answer == passage[passage_ans_start_idx:passage_ans_end_idx]
+                assert isinstance(answer_tokens, list)
+            ## TODO: update the question text and the question tokens after paraphrasing.
         return example
 
     def paraphrase_around_answer_sent(self, example: Dict) -> Dict:
@@ -226,9 +220,8 @@ class Paraphraser(ABC):
     def _generate_paraphrases(self, *args, **kwargs) -> Tuple[List[str], List[List[str]]]:
         pass
 
-    @classmethod
     def _select_paraphrase(
-            cls,
+            self,
             passage: str,
             passage_tokens: List[str],
             paraphrases_list: List[str],
@@ -240,7 +233,7 @@ class Paraphraser(ABC):
             print_bottom_k: int,
     ) -> Tuple[Optional[str], Optional[List[str]]]:
         if use_scoring_function:
-            scored_paraphrases: List[Tuple[float, str, List[str]]] = cls._calculate_paraphrase_scores(
+            scored_paraphrases: List[Tuple[float, str, List[str]]] = self._calculate_paraphrase_scores(
                 passage_tokens=passage_tokens,
                 paraphrases_list=paraphrases_list,
                 paraphrase_tokens_list=paraphrase_tokens_list,
@@ -250,19 +243,17 @@ class Paraphraser(ABC):
                 scored_paraphrases, key=lambda x: x[0], reverse=True
             )
             if print_top_k > 0 or print_bottom_k > 0:
-                logging.info('')
-                logging.info('=' * 50)
-                logging.info(f'Original:\n{passage}')
+                print()
+                print('=' * 50)
+                print(f'Original:\n{passage}')
             if print_top_k > 0:
-                logging.info(f'Top {print_top_k} paraphrases by scores (n_gram={score_n_gram}):')
+                print(f'Top {print_top_k} paraphrases by scores (n_gram={score_n_gram}):')
                 for paraphrase_score, paraphrase, paraphrase_tokens in scored_paraphrases[:print_top_k]:
-                    logging.info((paraphrase_score, paraphrase))
-                    logging.info('\n')
+                    print((paraphrase_score, paraphrase), end='\n\n')
             if print_bottom_k > 0:
-                logging.info(f'Bottom {print_top_k} paraphrases by scores (n_gram={score_n_gram}):')
+                print(f'Bottom {print_top_k} paraphrases by scores (n_gram={score_n_gram}):')
                 for paraphrase_score, paraphrase, paraphrase_tokens in scored_paraphrases[-print_bottom_k:]:
-                    logging.info((paraphrase_score, paraphrase))
-                    logging.info('\n')
+                    print((paraphrase_score, paraphrase), end='\n\n')
             paraphrase_score, paraphrase, paraphrase_tokens = scored_paraphrases[0]  ## Select those with highest score
             if paraphrase_score >= score_threshold:
                 return paraphrase, paraphrase_tokens
@@ -276,19 +267,17 @@ class Paraphraser(ABC):
                 for i, (paraphrase, paraphrase_tokens) in enumerate(zip(paraphrases_list, paraphrase_tokens_list))
             ]
             if print_top_k > 0 or print_bottom_k > 0:
-                logging.info('')
-                logging.info('=' * 50)
-                logging.info(f'Original:\n{passage}')
+                print()
+                print('=' * 50)
+                print(f'Original:\n{passage}')
             if print_top_k > 0:
-                logging.info(f'Top {print_top_k} paraphrases by beam search:')
+                print(f'Top {print_top_k} paraphrases by beam search:')
                 for paraphrase_rank, paraphrase, paraphrase_tokens in scored_paraphrases[:print_top_k]:
-                    logging.info((paraphrase_rank, paraphrase))
-                    logging.info('\n')
+                    print((paraphrase_rank, paraphrase), end='\n\n')
             if print_bottom_k > 0:
-                logging.info(f'Bottom {print_top_k} paraphrases by beam search:')
+                print(f'Bottom {print_top_k} paraphrases by beam search:')
                 for paraphrase_rank, paraphrase, paraphrase_tokens in scored_paraphrases[-print_bottom_k:]:
-                    logging.info((paraphrase_rank, paraphrase))
-                    logging.info('\n')
+                    print((paraphrase_rank, paraphrase), end='\n\n')
             ## Return those with highest rank:
             return paraphrases_list[0], paraphrase_tokens_list[0]
 
@@ -411,7 +400,8 @@ class MachineTranslationParaphraser(Paraphraser):
     """
     
 
-    PRETRAINED_MODEL_NAMES = '' # grab list from torch hub
+    PRETRAINED_MODEL_NAMES = torch.hub.list('pytorch/fairseq') # grab list from torch hub
+    
     def __init__(self, args):
         super().__init__(args)
         
@@ -456,7 +446,6 @@ class PegasusParaphraser(AbstractiveSummarizationParaphraser):
         super().__init__(args)
         assert args.pretrained_model_name in self.PRETRAINED_MODEL_NAMES
         self.pretrained_model_name = args.pretrained_model_name
-        print(f'Loading Pegasus ({self.pretrained_model_name})')
         model = PegasusForConditionalGeneration.from_pretrained(self.pretrained_model_name)
         if args.use_gpu:
             model = cuda(args, model)
@@ -545,9 +534,6 @@ class PegasusParaphraser(AbstractiveSummarizationParaphraser):
 
 
 def paraphrase(args):
-    if args.verbose:
-        set_root_logger()
-
     print(f'Paraphrasing using args:')
     pprint(vars(args))
 
@@ -557,9 +543,8 @@ def paraphrase(args):
 
     output_file_name = f'{dataset_name}'
     output_file_name += f'-{args.paraphrase}'
-    ParaphraserSubclass: Paraphraser.__class__ = None
     if args.architecture == 'pegasus':
-        ParaphraserSubclass: Paraphraser.__class__ = PegasusParaphraser
+        paraphraser: Paraphraser = PegasusParaphraser(args)
         output_file_name += f'-{args.pretrained_model_name.replace("google/", "")}'
         output_file_name += f'-chk{args.normalized_chunk_length}'
         output_file_name += f'-mul{args.max_len_multiplier}'
@@ -567,18 +552,16 @@ def paraphrase(args):
         output_file_name += f'-temp{args.temperature}'
     else:
         raise NotImplementedError(f'Unsupported architecture: {args.architecture}')
+
     if args.use_scoring_function:
         output_file_name += f'-score'
         output_file_name += f'-th{args.score_threshold}'
         output_file_name += f'-ngram{args.score_n_gram}'
 
     output_dir = os.sep.join(args.input_path.split(os.sep)[:-1])
-    output_path = os.path.join(output_dir, output_file_name + '.jsonl.gz')
-    output_args_path = os.path.join(output_dir, output_file_name + '.args.json')
+    output_path = os.path.join(output_dir, output_file_name, '.jsonl.gz')
+    output_args_path = os.path.join(output_dir, output_file_name, '.args.json')
     print(f'We will write to:\n  {output_path}\n  {output_args_path}')
-
-    ## Load paraphraser to memory
-    paraphraser: Paraphraser = ParaphraserSubclass(args)
 
     paraphrased_examples = []
     for example in examples:
@@ -605,14 +588,6 @@ def paraphrase(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-
-    ## Logging args:
-    parser.add_argument(
-        '--verbose',
-        action='store_true',
-        default=False,
-        help='Whether to print every paraphrase, top and bottom paraphrases, etc.',
-    )
 
     ## Training args.
     parser.add_argument('--device', type=int, default=0)
