@@ -257,10 +257,10 @@ def backtranslate(sent, forward, backward):
     backward = backward.eval()
     return backward.translate(forward.translate(sent))
 
-def load_translators():
+def load_translators(forward_model_path='transformer.wmt19.en-de.single_model', backward_model_path='transformer.wmt19.de-en.single_model'):
     # Round-trip translations between English and German:
-    forward = torch.hub.load('pytorch/fairseq', 'transformer.wmt19.en-de.single_model', tokenizer='moses', bpe='fastbpe')
-    backward = torch.hub.load('pytorch/fairseq', 'transformer.wmt19.de-en.single_model', tokenizer='moses', bpe='fastbpe')
+    forward = torch.hub.load('pytorch/fairseq', forward_model_path, tokenizer='moses', bpe='fastbpe')
+    backward = torch.hub.load('pytorch/fairseq', backward_model_path, tokenizer='moses', bpe='fastbpe')
     
     return forward, backward
     
