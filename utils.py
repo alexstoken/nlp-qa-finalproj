@@ -5,6 +5,7 @@ Author:
 """
 from typing import *
 import os, json, gzip, pickle, time
+from collections import Counter
 
 import torch
 from tqdm import tqdm
@@ -17,6 +18,7 @@ QUESTION_KEY = 'question'
 ANSWER_KEY = 'answer'
 ANSWER_START_IDX_KEY = 'answer_start_idx'
 ANSWER_END_IDX_KEY = 'answer_end_idx'
+
 
 def cuda(args, tensor):
     """
@@ -200,8 +202,23 @@ if __name__ == '__main__':
         ['arguably', 'the', 'greatest', 'F1', 'driver', 'in', 'the', 'world', ',', 'Lewis', 'Hamilton', 'is', '36',
          'this', 'January'],
     ) == (5, ['in', 'the', 'world', 'is', 'this'])
-    
-def backtranslate_questions(train_dataset,  batch_size, forward_translate, backward_translate, n=None):
+
+
+def get_ngrams(tokens: Union[str, List[str]], n_gram: int) -> Counter:
+    assert isinstance(n_gram, int) and n_gram >= 1
+    ngrams_counts = Counter()
+    if n_gram == 1:
+        for token in tokens:
+            ngrams_counts[token] += 1
+        return ngrams_counts
+
+    for i in range(len(tokens) - n_gram + 1):
+        n_gram_slice = tuple(tokens[i: i + n_gram])
+        ngrams_counts[n_gram_slice] += 1
+    return ngrams_counts
+
+
+def backtranslate_questions(train_dataset, batch_size, forward_translate, backward_translate, n=None):
     start = time.time()
     new_samples: List[Tuple] = []
     if n is None:
@@ -214,12 +231,12 @@ def backtranslate_questions(train_dataset,  batch_size, forward_translate, backw
             batched_questions.append(' '.join(s[QUESTION_TOKENS_KEY]))
             batch.append(list(s))
 
+        ## TODO @alex
         batched_backtrans_qs = backtranslate(batched_questions, forward_translate, backward_translate)
-
 
         for backtrans_q, new_sample in zip(batched_backtrans_qs, batch):
             new_sample[2] = backtrans_q.split()
             new_sample = tuple(new_sample)
         new_samples += batch
-    #print(batch_start, time.time()-start)
+    # print(batch_start, time.time()-start)
     return new_samples
