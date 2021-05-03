@@ -10,13 +10,11 @@ import textwrap
 
 from termcolor import colored
 
-from data import QADataset
-
+from data import *
 
 RULE_LENGTH = 100
 DOC_WIDTH = 100
 TEXT_WRAPPER = textwrap.TextWrapper(width=DOC_WIDTH)
-
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -96,7 +94,12 @@ def main(args):
     print()
 
     # Visualize samples.
-    for (qid, context, question, answer_start, answer_end) in vis_samples:
+    for ex in vis_samples:
+        qid = ex[QID_KEY]
+        context = ex[PASSAGE_TOKENS_KEY]
+        question = ex[QUESTION_TOKENS_KEY]
+        answer_start = ex[ANSWER_START_IDX_KEY]
+        answer_end = ex[ANSWER_END_IDX_KEY]
         print('[METADATA]')
         print(f'path = \'{args.path}\'')
         print(f'question id = {qid}')

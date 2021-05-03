@@ -3,15 +3,17 @@
 Author:
     Shrey Desai
 """
-
-import os
-import json
-import gzip
-import pickle
+from typing import *
+import os, json, gzip, pickle, time
 
 import torch
 from tqdm import tqdm
 
+QID_KEY = 'qid'
+PASSAGE_TOKENS_KEY = 'passage_tokens'
+QUESTION_TOKENS_KEY = 'question_tokens'
+ANSWER_START_IDX_KEY = 'answer_start_idx'
+ANSWER_END_IDX_KEY = 'answer_end_idx'
 
 def cuda(args, tensor):
     """
@@ -202,13 +204,11 @@ def backtranslate_questions(train_dataset,  batch_size, forward_translate, backw
     if n is None:
         n = len(train_dataset.samples)
     for batch_start in range(0, len(train_dataset.samples[:n]), batch_size):
-       
-        
         # build a batch as a list
         batch = []
         batched_questions = []
         for s in train_dataset.samples[batch_start:batch_start + batch_size]:
-            batched_questions.append(' '.join(s[2]))
+            batched_questions.append(' '.join(s[QUESTION_TOKENS_KEY]))
             batch.append(list(s))
 
         batched_backtrans_qs = backtranslate(batched_questions, forward_translate, backward_translate)

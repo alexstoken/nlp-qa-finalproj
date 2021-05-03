@@ -11,8 +11,7 @@ from typing import *
 from torch.utils.data import Dataset
 from random import shuffle
 import numpy as np
-from utils import cuda, load_dataset
-
+from utils import *
 
 PAD_TOKEN = '[PAD]'
 UNK_TOKEN = '[UNK]'
@@ -56,13 +55,12 @@ class Vocabulary:
             (at position 0) and `UNK_TOKEN` (at position 1) are prepended.
         """
         vocab = collections.defaultdict(int)
-        for (_, passage, question, _, _) in samples:
-            for token in itertools.chain(passage, question):
+        for ex in samples:
+            passage_tokens = ex[PASSAGE_TOKENS_KEY]
+            question_tokens = ex[QUESTION_TOKENS_KEY]
+            for token in itertools.chain(passage_tokens, question_tokens):
                 vocab[token.lower()] += 1
-        top_words = [
-                        word for (word, _) in
-                        sorted(vocab.items(), key=lambda x: x[1], reverse=True)
-                    ][:vocab_size]
+        top_words = [word for (word, _) in sorted(vocab.items(), key=lambda x: x[1], reverse=True)][:vocab_size]
         words = [PAD_TOKEN, UNK_TOKEN] + top_words
         return words
 
@@ -143,9 +141,9 @@ class QADataset(Dataset):
 
     def __init__(self, args, path):
         self.args = args
-        self.meta, self.elems = load_dataset(path)
-        self.samples = self._create_examples(
-            self.elems,
+        _, elems = load_dataset(path)
+        self.samples: List[Dict] = self._create_examples(
+            elems,
             num_answers=args.num_answers,
             unique_samples=args.unique_samples,
             lowercase_passage=args.lowercase_passage,
@@ -167,7 +165,7 @@ class QADataset(Dataset):
             lowercase_question: bool,
             max_context_length: int,
             max_question_length: int,
-    ):
+    ) -> List[Dict]:
         """
         Formats raw examples to desired form. Any passages/questions longer
         than max sequence length will be truncated.
@@ -176,28 +174,38 @@ class QADataset(Dataset):
             A list of words (string).
         """
         max_num_answers = 0
-        examples: List[Tuple] = []
+        examples: List[Dict] = []
         for elem in elems:
             # Unpack the context paragraph (passage). Shorten to max sequence length.
-            passage = [
-                token.lower() if lowercase_passage else token for (token, offset) in elem['context_tokens']
-            ][:max_context_length]
+            passage_tokens = [
+                token.lower() if lowercase_passage else token
+                for (token, offset) in elem['context_tokens']
+            ]
+            passage_tokens = passage_tokens[:max_context_length]
 
             # Each passage has several questions associated with it.
             # Additionally, each question has multiple possible answer spans.
             for qa in elem['qas']:
                 qid = qa['qid']
-                question = [
-                    token.lower() if lowercase_question else token for (token, offset) in qa['question_tokens']
-                ][:max_question_length]
+                question_tokens = [
+                    token.lower() if lowercase_question else token
+                    for (token, offset) in qa['question_tokens']
+                ]
+                question_tokens = question_tokens[:max_question_length]
 
                 # Select one or more answer spans, which is formatted as
                 # (start_position, end_position), where the end_position
                 # is inclusive.
                 answer_examples = []
                 for answer in qa['detected_answers']:
-                    answer_start, answer_end = answer['token_spans'][0]
-                    answer_examples.append((qid, passage, question, answer_start, answer_end))
+                    answer_start_idx, answer_end_idx = answer['token_spans'][0]
+                    answer_examples.append({
+                        QID_KEY: qid,
+                        PASSAGE_TOKENS_KEY: passage_tokens,
+                        QUESTION_TOKENS_KEY: question_tokens,
+                        ANSWER_START_IDX_KEY: answer_start_idx,
+                        ANSWER_END_IDX_KEY: answer_end_idx
+                    })
                 max_num_answers = max(max_num_answers, len(answer_examples))
                 if num_answers >= 1:
                     answer_examples = answer_examples[:num_answers]
@@ -231,17 +239,21 @@ class QADataset(Dataset):
         end_positions = []
         for idx in example_idxs:
             # Unpack QA sample and tokenize passage/question.
-            qid, passage, question, answer_start, answer_end = self.samples[idx]
+            qid = self.samples[idx]['qid']
+            passage_tokens = self.samples[idx]['passage_tokens']
+            question_tokens = self.samples[idx]['question_tokens']
+            answer_start_idx = self.samples[idx]['answer_start_idx']
+            answer_end_idx = self.samples[idx]['answer_end_idx']
 
             # Convert words to tensor.
             passage_ids = torch.tensor(
-                self.tokenizer.convert_tokens_to_ids(passage)
+                self.tokenizer.convert_tokens_to_ids(passage_tokens)
             )
             question_ids = torch.tensor(
-                self.tokenizer.convert_tokens_to_ids(question)
+                self.tokenizer.convert_tokens_to_ids(question_tokens)
             )
-            answer_start_ids = torch.tensor(answer_start)
-            answer_end_ids = torch.tensor(answer_end)
+            answer_start_ids = torch.tensor(answer_start_idx)
+            answer_end_ids = torch.tensor(answer_end_idx)
 
             # Store each part in an independent list.
             passages.append(passage_ids)
@@ -347,6 +359,6 @@ class QADataset(Dataset):
             tokenizer: If `True`, shuffle examples. Default: `False`
         """
         self.tokenizer = tokenizer
-    
+
     def __len__(self):
         return len(self.samples)

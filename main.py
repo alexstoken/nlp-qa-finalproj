@@ -31,10 +31,10 @@ import torch.nn.functional as F
 import torch.optim as optim
 from tqdm import tqdm
 
-from data import QADataset, Tokenizer, Vocabulary
+from data import *
 
 from model import BaselineReader
-from utils import cuda, search_span_endpoints, unpack
+from utils import *
 
 _TQDM_BAR_SIZE = 75
 _TQDM_LEAVE = False
@@ -444,7 +444,8 @@ def write_predictions(args, model, dataset):
             for j in range(start_logits.size(0)):
                 # Find question index and passage.
                 sample_index = args.batch_size * i + j
-                qid, passage, _, _, _ = dataset.samples[sample_index]
+                qid = dataset.samples[sample_index][QID_KEY]
+                passage = dataset.samples[sample_index][PASSAGE_TOKENS_KEY]
 
                 # Unpack start and end probabilities. Find the constrained
                 # (start, end) pair that has the highest joint probability.
