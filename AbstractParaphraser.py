@@ -232,6 +232,7 @@ class AbstractParaphraser(ABC):
         :param example: one entry in the dataset. A dict with the keys 'context', 'context_tokens', 'qas', etc.
         :return: example, with paraphrased passage EXCEPT for the answer sentence.
         """
+
         pass  ##TODO
 
     def paraphrase_answer(self, example: Dict) -> Dict:
@@ -248,6 +249,29 @@ class AbstractParaphraser(ABC):
         :param example: one entry in the dataset. A dict with the keys 'context', 'context_tokens', 'qas', etc.
         :return: example, with paraphrased answer sentence.
         """
+        example = copy.deepcopy(example)
+        passage: str = example['context']
+        passage_tokens: List[str] = [x[0] for x in example['context_tokens']]
+        for qa_dict in example['qas']:
+            print(qa_dict.keys())
+            paraphrased_answer, paraphrased_answer_tokens = self.paraphrase(answer, answer_tokens)
+            qa_dict['answer']: str = paraphrased_answer
+            qa_dict['answer_tokens']: List[Tuple[str, int]] = self.get_token_idxs(
+                paraphrased_answer, paraphrased_answer_tokens
+            )
+            qa_dict['answer_is_paraphrased']: bool = True
+            # for answer_dict in qa_dict['detected_answers']:
+            #     passage_tokens_ans_start_idx = answer_dict['token_spans'][0][0]
+            #     passage_tokens_ans_end_idx = answer_dict['token_spans'][0][1] + 1
+            #     ## Example `answer_tokens`:   ['Barney', 'Stinson', ',']
+            #     answer_tokens: List[str] = passage_tokens[passage_tokens_ans_start_idx:passage_tokens_ans_end_idx]
+            #     ## Example `answer`:   "Barney Stinson,"
+            #     answer: str = answer_dict['text']
+            #     passage_ans_start_idx = answer_dict['char_spans'][0][0]
+            #     passage_ans_end_idx = answer_dict['char_spans'][0][1] + 1
+            #     assert answer == passage[passage_ans_start_idx:passage_ans_end_idx]
+            #     assert isinstance(answer_tokens, list)
+        return example
         pass  ##TODO
 
     @abstractmethod

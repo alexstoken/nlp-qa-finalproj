@@ -17,7 +17,9 @@ class FairSeqParaphraser(MachineTranslationParaphraser):
 
     def __init__(self, args, device):
         super().__init__(args, device)
+        
         self.forward_model, self.backward_model = self._load_translators()
+        self.tokenizer = '' # TODO add tokenizer
 
     def _load_translators(self, forward_model_path='transformer.wmt19.en-de.single_model',
                           backward_model_path='transformer.wmt19.de-en.single_model'):
@@ -29,7 +31,24 @@ class FairSeqParaphraser(MachineTranslationParaphraser):
     def backtranslate(self, sent):
         return self.backward_model.translate(self.forward_model.translate(sent))
 
-    def _generate_paraphrases(self):
-        return
-
-    pass
+    def _generate_paraphrases(
+            self,
+            input_text: str,
+            max_length: int,
+            **kwargs
+    ) -> Tuple[List[str], List[List[str]]]:
+        """
+        Paraphrases the input text.
+        :param input_text: the text to paraphrase. Should be a single string. Example:
+            '''Around midnight at London's Leicester Square, as news of Jackson's death spread, Luis Carlos Ameida and his friends were surrounding a car listening to the star's music. Ameida said he'd gotten tickets to see Jackson at his "This Is It" concerts beginning on July 13 in London.'''
+        :param max_length: the maximum length of the paraphrase.
+        :return: a list of paraphrased strings
+        """
+        # run input text through backtranslate
+        forward_translation = self.forward_model.translate(input_text)
+        
+        backward_beams = self.backward_model.translate(forward_translation, beams= 30)
+        # tokenize 
+        
+        #return raw output and tokenized input 
+        return None

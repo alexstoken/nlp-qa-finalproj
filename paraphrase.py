@@ -67,9 +67,9 @@ def paraphrase(args):
         elif args.paraphrase == 'around_answer_sent':
             paraphrased_examples.append(paraphraser.paraphrase_around_answer_sent(example))
         elif args.paraphrase == 'answer':
-            paraphrased_examples.append(paraphraser.paraphrase_question(example))
+            paraphrased_examples.append(paraphraser.paraphrase_answer(example))
         elif args.paraphrase == 'answer_sent':
-            paraphrased_examples.append(paraphraser.paraphrase_question(example))
+            paraphrased_examples.append(paraphraser.paraphrase_answer_sent(example))
         else:
             raise NotImplementedError(f'Cannot paraphrase "{args.paraphrase}"')
         if (i+1) % 10 == 0:
