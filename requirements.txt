@@ -11,3 +11,5 @@ cython
 fastbpe
 sacremoses
 subword_nmt
+transformers==4.5.1
+sentencepiece==0.1.95
