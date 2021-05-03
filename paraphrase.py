@@ -38,8 +38,8 @@ def paraphrase(args):
         output_file_name += f'-ngram{args.score_n_gram}'
 
     output_dir = os.sep.join(args.input_path.split(os.sep)[:-1])
-    output_path = os.path.join(output_dir, output_file_name, '.jsonl.gz')
-    output_args_path = os.path.join(output_dir, output_file_name, '.args.json')
+    output_path = os.path.join(output_dir, output_file_name + '.jsonl.gz')
+    output_args_path = os.path.join(output_dir, output_file_name + '.args.json')
     print(f'We will write to:\n  {output_path}\n  {output_args_path}')
 
     ## Setup device:
@@ -61,7 +61,7 @@ def paraphrase(args):
         if args.paraphrase == 'question':
             logging.info('=' * 50)
             logging.info('=' * 50)
-            logging.info(f'Paraphrasing question#{i}...\n')
+            logging.info(f'Paraphrasing question {i+1} of {len(examples)}...\n')
             paraphrased_examples.append(paraphraser.paraphrase_question(example))
         elif args.paraphrase == 'around_answer_sent':
             paraphrased_examples.append(paraphraser.paraphrase_around_answer_sent(example))
@@ -75,9 +75,9 @@ def paraphrase(args):
     with gzip.open(output_path, 'wb') as out:
         for ex in paraphrased_examples:
             ## Ref: https://stackoverflow.com/a/39451012
-            out.write((json.dumps(ex) + '\n').encode('utf-8'))
+            out.write((json.dumps(ex, indent=4) + '\n').encode('utf-8'))
 
-    with io.open(output_args_path, 'w') as out:
+    with io.open(output_args_path, 'w+') as out:
         out.write(json.dumps(vars(args)))
 
 
@@ -180,7 +180,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--print_bottom_k_paraphrases',
         type=int,
-        default=1,
+        default=3,
         help='output dataset path. Should be a .jsonl.gz file',
     )
     parser.add_argument(

@@ -402,7 +402,6 @@ class AbstractParaphraser(ABC):
     ) -> List[Tuple[float, str, List[str]]]:
         scored_paraphrases: List[Tuple[float, str, List[str]]] = []
         for paraphrase, paraphrase_tokens in zip(paraphrases_list, paraphrase_tokens_list):
-            logging.info(f'Paraphrase:\n{paraphrase}')
             paraphrase_score: float = cls._calculate_paraphrase_score(passage_tokens, paraphrase_tokens, n_gram=n_gram)
             scored_paraphrases.append((paraphrase_score, paraphrase, paraphrase_tokens))
         return scored_paraphrases
