@@ -393,6 +393,40 @@ class AbstractiveSummarizationParaphraser(Paraphraser):
 
 
 class MachineTranslationParaphraser(Paraphraser):
+    """
+    ADD CLASS DOCSTRING
+    
+    
+    """
+    
+
+    PRETRAINED_MODEL_NAMES = '' # grab list from torch hub
+    def __init__(self, args):
+        super().__init__(args)
+        
+
+        
+        self.forward_model, self.backward_model  = self._load_translators()
+        if args.use_gpu:
+            model = cuda(args, model)
+        
+
+    def _load_translators(self, forward_model_path='transformer.wmt19.en-de.single_model', backward_model_path='transformer.wmt19.de-en.single_model'):
+        """
+
+        """
+        forward = torch.hub.load('pytorch/fairseq', forward_model_path, tokenizer='moses', bpe='fastbpe')
+        backward = torch.hub.load('pytorch/fairseq', backward_model_path, tokenizer='moses', bpe='fastbpe')
+        
+        return forward.eval(), backward.eval()
+    
+    def backtranslate(self, sent):
+        return self.backward.translate(self.forward.translate(sent))
+    
+    def _generate_paraphrases(self):
+        
+        return 
+        
     pass
 
 
