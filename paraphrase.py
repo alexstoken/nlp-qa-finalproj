@@ -10,6 +10,9 @@ from MachineTranslationParaphraser import FairSeqParaphraser
 
 
 def paraphrase(args):
+    if args.verbose:
+        set_root_logger()
+
     print(f'Paraphrasing using args:')
     pprint(vars(args))
 
