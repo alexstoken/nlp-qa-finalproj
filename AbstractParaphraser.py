@@ -295,6 +295,7 @@ class AbstractParaphraser(ABC):
                 beginning_to_ans_sent = ' '.join(passage_sent_tokens[:answer_sent_idx])
                 after_ans_sent_to_end = ' '.join(passage_sent_tokens[answer_sent_idx+1:])
                 
+                print(beginning_to_ans_sent)
                 beginning_to_ans_sent_tokens = self.get_token_idxs(beginning_to_ans_sent, self.tokenize(beginning_to_ans_sent))
                 after_ans_sent_to_end_tokens = self.get_token_idxs(after_ans_sent_to_end, self.tokenize(after_ans_sent_to_end))
                 

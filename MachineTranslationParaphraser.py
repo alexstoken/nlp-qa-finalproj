@@ -45,10 +45,26 @@ class FairSeqParaphraser(MachineTranslationParaphraser):
         :return: a list of paraphrased strings
         """
         # run input text through backtranslate
-        forward_translation = self.forward_model.translate(input_text)
+        forward_translation = self.forward_model.translate(input_text, beam=10)
         
-        backward_beams = self.backward_model.translate(forward_translation, beams= 30)
-        # tokenize 
+        # backward translate
+        forward_tokens = self.forward_model.tokenize(forward_translation)
+        forward_bpe = self.forward_model.apply_bpe(forward_tokens)
+        forward_bin = self.forward_model.binarize(forward_bpe)
+        paraphrases_bin_list = self.backward_model.generate(forward_bin, beam=10, sampling=True, sampling_topk=20)
+        
+        # tdetokenizse and retokenize
+        paraphrase_list = []
+        paraphrase_tokens_list = []
+        for paraphrase_bin in paraphrases_bin_list:
+            paraphrase_sample = paraphrase_bin['tokens']
+            paraphrase_bpe = self.backward_model.string(paraphrase_tokens)
+            paraphrase_tokens = self.backward_model.remove_bpe(paraphrase_bpe)
+            paraphrase_string = self.backward_model.detokenize(paraphrase_tokens)
+            
+            paraphrase_list.append(paraphrase_string)
+            paraphrase_tokens_list.append(paraphrase_tokens)
+            
         
         #return raw output and tokenized input 
-        return None
+        return paraphrase_list, paraphrase_tokens_list
