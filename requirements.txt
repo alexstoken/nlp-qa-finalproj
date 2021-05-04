@@ -16,3 +16,7 @@ sentencepiece==0.1.95
 nltk
 jupyterlab
 ipykernel
+fairseq
+hydra-core
+pandas
+tensorboard
