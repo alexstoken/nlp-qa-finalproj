@@ -85,15 +85,17 @@ def paraphrase(args):
             raise NotImplementedError(f'Cannot paraphrase "{args.paraphrase}"')
         if (batch_idx + 1) % 10 == 0:
             now = time.time()
-            print(f'\n{output_file_name}: Took {(now - start):.3f} seconds total to paraphrase {batch_start + 1} of {len(examples)} examples '
+            print(f'\n{output_file_name}: Took {(now - start):.3f} seconds total to '
+                  f'paraphrase {batch_start + 1} of {len(examples)} examples '
                   f'({(now - start) / (batch_start + args.batch_size + 1):.3f} seconds/example).')
-            if (batch_idx + 1) % (len(examples) // 10) == 0:  ## Save 10 checkpoints
-                with gzip.open(os.path.join(output_dir,
-                                            output_file_name + f'-{batch_start + args.batch_size + 1}' + '.jsonl.gz'),
-                               'wb') as out:
-                    for ex in [meta] + paraphrased_examples:
-                        ## Ref: https://stackoverflow.com/a/39451012
-                        out.write((json.dumps(ex) + '\n').encode('utf-8'))
+        if (batch_idx + 1) % (len(examples) // args.num_checkpoints) == 0:
+            print(f'\n{output_file_name}: Saving checkpoint: with {len(paraphrased_examples)} examples.')
+            with gzip.open(
+                    os.path.join(output_dir, output_file_name + f'-{batch_start + args.batch_size + 1}' + '.jsonl.gz'),
+                    'wb') as out:
+                for ex in [meta] + paraphrased_examples:
+                    ## Ref: https://stackoverflow.com/a/39451012
+                    out.write((json.dumps(ex) + '\n').encode('utf-8'))
 
     with gzip.open(output_path, 'wb') as out:
         for ex in [meta] + paraphrased_examples:
@@ -112,6 +114,12 @@ if __name__ == '__main__':
         '--verbose',
         action='store_true',
         help='Whether to print every paraphrase, top and bottom paraphrases, etc.',
+    )
+    parser.add_argument(
+        '--num_checkpoints',
+        type=int,
+        default=20,
+        help='Number of checkpoints to save while paraphrasing',
     )
 
     ## Training args.
