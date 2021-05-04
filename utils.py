@@ -6,7 +6,7 @@ Author:
 from typing import *
 import os, json, gzip, pickle, time, logging
 from collections import Counter
-
+import numpy as np
 import torch
 from tqdm import tqdm
 
@@ -274,3 +274,8 @@ def set_root_logger(log_level=logging.INFO, log_format='%(message)s'):
     logging.getLogger().setLevel(log_level)
     for handler in logging.getLogger().handlers:
         handler.setFormatter(log_formatter)
+
+
+def generate_random_string(max_num_chars=10) -> str:
+    alphabet = list('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789')
+    return "".join(np.random.choice(alphabet, max_num_chars))

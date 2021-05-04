@@ -21,11 +21,15 @@ Author:
 """
 
 import argparse
+import io
+import os
 import pprint
 import json
 
 import torch
 import numpy as np
+import pandas as pd
+from pandas.core.frame import Series as PandasSeries, DataFrame as PandasDataFrame
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
@@ -35,6 +39,7 @@ from data import *
 
 from model import BaselineReader
 from utils import *
+from evaluate import *
 
 _TQDM_BAR_SIZE = 75
 _TQDM_LEAVE = False
@@ -62,7 +67,7 @@ parser.add_argument(
 parser.add_argument(
     '--model_path',
     type=str,
-    required=True,
+    default=f'models/{generate_random_string()}.pt',
     help='path to load/save model checkpoints',
 )
 parser.add_argument(
@@ -90,12 +95,6 @@ parser.add_argument(
     help='Max number of answers per question',
 )
 parser.add_argument(
-    '--unique_samples',
-    type=bool,
-    default=False,
-    help='Whether tuple (passage, question, answer_start, answer_end) should be unique',
-)
-parser.add_argument(
     '--lowercase_passage',
     type=bool,
     default=True,
@@ -110,7 +109,7 @@ parser.add_argument(
 parser.add_argument(
     '--max_context_length',
     type=int,
-    default=384,
+    default=1024,
     help='maximum context length (do not change!)',
 )
 parser.add_argument(
@@ -122,14 +121,21 @@ parser.add_argument(
 parser.add_argument(
     '--output_path',
     type=str,
-    required=False,
+    default=f'preds/{generate_random_string()}.preds.txt',
     help='predictions output path',
+)
+parser.add_argument(
+    '--runs',
+    type=int,
+    default=5,
+    help='Number of runs',
 )
 parser.add_argument(
     '--shuffle_examples',
     action='store_true',
     help='shuffle training example at the beginning of each epoch',
 )
+parser.add_argument('--skip_no_answer', action='store_true')
 
 parser.add_argument(
     '--data_aug',
@@ -183,6 +189,11 @@ parser.add_argument(
     '--do_test',
     action='store_true',
     help='flag to enable testing',
+)
+parser.add_argument(
+    '--do_train_test_eval',
+    action='store_true',
+    help='flag to enable training, test and eval',
 )
 
 # Model arguments.
@@ -360,7 +371,7 @@ def train(args, epoch, model, dataset):
     return train_loss / train_steps
 
 
-def evaluate(args, epoch, model, dataset):
+def evaluate_loss(args, epoch, model, dataset):
     """
     Evaluates the model for a single epoch using the development dataset.
 
@@ -499,80 +510,118 @@ def main(args):
     args.pad_token_id = tokenizer.pad_token_id
     print(f'vocab words = {len(vocabulary)}')
 
+    metrics_path = args.train_path.replace('.jsonl.gz', '.metrics.txt').replace('datasets', 'results')
+    os.system(f'rm {metrics_path}')
+
     # Print number of samples.
     print(f'train samples = {len(train_dataset)}')
+    print(f'Num paraphrased questions in train dataset: {train_dataset.num_paraphrased_questions}')
+    print('~' * 50)
     print(f'dev samples = {len(dev_dataset)}')
+    print(f'Num paraphrased questions in dev dataset: {dev_dataset.num_paraphrased_questions}')
     print()
 
-    # Select model.
-    model = _select_model(args)
-    num_pretrained = model.load_pretrained_embeddings(
-        vocabulary, args.embedding_path
-    )
-    pct_pretrained = round(num_pretrained / len(vocabulary) * 100., 2)
-    print(f'using pre-trained embeddings from \'{args.embedding_path}\'')
-    print(
-        f'initialized {num_pretrained}/{len(vocabulary)} '
-        f'embeddings ({pct_pretrained}%)'
-    )
-    print()
+    metrics_list = []
+    for run_i in range(args.runs):
+        print('=' * 100)
+        print(' ' * 45 + f'RUN#{run_i + 1}')
+        print('=' * 100)
 
-    if args.use_gpu:
-        model = cuda(args, model)
-
-    params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    print(f'using model \'{args.model}\' ({params} params)')
-    print(model)
-    print()
-
-    if args.do_train:
-        # Track training statistics for checkpointing.
-        eval_history = []
-        best_eval_loss = float('inf')
-
-        # Begin training.
-        for epoch in range(1, args.epochs + 1):
-            # Perform training and evaluation steps.
-            train_loss = train(args, epoch, model, train_dataset)
-            eval_loss = evaluate(args, epoch, model, dev_dataset)
-
-            # If the model's evaluation loss yields a global improvement,
-            # checkpoint the model.
-            eval_history.append(eval_loss < best_eval_loss)
-            if eval_loss < best_eval_loss:
-                best_eval_loss = eval_loss
-                torch.save(model.state_dict(), args.model_path)
-
-            print(
-                f'epoch = {epoch} | '
-                f'train loss = {train_loss:.6f} | '
-                f'eval loss = {eval_loss:.6f} | '
-                f"{'saving model!' if eval_history[-1] else ''}"
-            )
-
-            # If early stopping conditions are met, stop training.
-            if _early_stop(args, eval_history):
-                suffix = 's' if args.early_stop > 1 else ''
-                print(
-                    f'no improvement after {args.early_stop} epoch{suffix}. '
-                    'early stopping...'
-                )
-                print()
-                break
-
-    if args.do_test:
-        # Write predictions to the output file. Use the printed command
-        # below to obtain official EM/F1 metrics.
-        write_predictions(args, model, dev_dataset)
-        eval_cmd = (
-            'python3 evaluate.py '
-            f'--dataset_path {args.dev_path} '
-            f'--output_path {args.output_path}'
+        # Select model.
+        model = _select_model(args)
+        num_pretrained = model.load_pretrained_embeddings(
+            vocabulary, args.embedding_path
+        )
+        pct_pretrained = round(num_pretrained / len(vocabulary) * 100., 2)
+        print(f'using pre-trained embeddings from \'{args.embedding_path}\'')
+        print(
+            f'initialized {num_pretrained}/{len(vocabulary)} '
+            f'embeddings ({pct_pretrained}%)'
         )
         print()
-        print(f'predictions written to \'{args.output_path}\'')
-        print(f'compute EM/F1 with: \'{eval_cmd}\'')
+
+        if args.use_gpu:
+            model = cuda(args, model)
+
+        params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+        print(f'using model \'{args.model}\' ({params} params)')
+        print(model)
         print()
+        if args.do_train or args.do_train_test_eval:
+            # Track training statistics for checkpointing.
+            eval_history = []
+            best_eval_loss = float('inf')
+
+            # Begin training.
+            for epoch in range(1, args.epochs + 1):
+                # Perform training and evaluation steps.
+                train_loss = train(args, epoch, model, train_dataset)
+                eval_loss = evaluate_loss(args, epoch, model, dev_dataset)
+
+                # If the model's evaluation loss yields a global improvement,
+                # checkpoint the model.
+                eval_history.append(eval_loss < best_eval_loss)
+                if eval_loss < best_eval_loss:
+                    best_eval_loss = eval_loss
+                    torch.save(model.state_dict(), args.model_path)
+
+                print(
+                    f'epoch = {epoch} | '
+                    f'train loss = {train_loss:.6f} | '
+                    f'eval loss = {eval_loss:.6f} | '
+                    f"{'saving model!' if eval_history[-1] else ''}"
+                )
+
+                # If early stopping conditions are met, stop training.
+                if _early_stop(args, eval_history):
+                    suffix = 's' if args.early_stop > 1 else ''
+                    print(
+                        f'no improvement after {args.early_stop} epoch{suffix}. '
+                        'early stopping...'
+                    )
+                    print()
+                    break
+
+        if args.do_test or args.do_train_test_eval:
+            # Write predictions to the output file. Use the printed command
+            # below to obtain official EM/F1 metrics.
+            write_predictions(args, model, dev_dataset)
+            eval_cmd = (
+                'python3 evaluate.py '
+                f'--dataset_path {args.dev_path} '
+                f'--output_path {args.output_path}'
+            )
+            print()
+            print(f'predictions written to \'{args.output_path}\'')
+            print(f'compute EM/F1 with: \'{eval_cmd}\'')
+            print()
+
+        if args.do_train_test_eval:
+            answers = read_answers(args.dev_path)
+            predictions = read_predictions(args.output_path)
+            metrics = evaluate_metrics(answers, predictions, args.skip_no_answer)
+            metrics['train_dataset.size'] = len(train_dataset)
+            metrics['train_dataset.num_paraphrased_questions'] = train_dataset.num_paraphrased_questions
+            metrics['dev_dataset.size'] = len(dev_dataset)
+            metrics['dev_dataset.num_paraphrased_questions'] = dev_dataset.num_paraphrased_questions
+            print(metrics)
+            with io.open(metrics_path, 'a+') as out:
+                out.write(json.dumps(metrics))
+                out.write('\n')
+            metrics_list.append(metrics)
+
+        del model
+
+    metrics_df = pd.DataFrame(metrics_list)
+    with io.open(metrics_path, 'a+') as out:
+        out.write('\nAVERAGE:\n')
+        out.write(json.dumps(metrics_df.mean(axis=0).round(2).to_dict()))
+        out.write('\nMIN:\n')
+        out.write(json.dumps(metrics_df.min(axis=0).round(2).to_dict()))
+        out.write('\nMAX:\n')
+        out.write(json.dumps(metrics_df.max(axis=0).round(2).to_dict()))
+    print('~' * 50)
+    print('~' * 50)
 
 
 if __name__ == '__main__':

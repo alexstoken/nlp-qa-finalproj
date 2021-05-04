@@ -143,7 +143,7 @@ def read_answers(gold_file):
     return answers
 
 
-def evaluate(answers, predictions, skip_no_answer=False):
+def evaluate_metrics(answers, predictions, skip_no_answer=False):
     """Main function for evaluating predicted answers.
 
     Args:
@@ -185,7 +185,7 @@ if __name__ == '__main__':
 
     answers = read_answers(args.dataset_path)
     predictions = read_predictions(args.output_path)
-    metrics = evaluate(answers, predictions, args.skip_no_answer)
+    metrics = evaluate_metrics(answers, predictions, args.skip_no_answer)
     print(metrics)
     
     

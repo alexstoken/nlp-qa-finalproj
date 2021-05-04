@@ -145,12 +145,12 @@ class QADataset(Dataset):
         self.samples: List[Dict] = self._create_examples(
             elems,
             num_answers=args.num_answers,
-            unique_samples=args.unique_samples,
             lowercase_passage=args.lowercase_passage,
             lowercase_question=args.lowercase_question,
             max_context_length=args.max_context_length,
             max_question_length=args.max_question_length,
         )
+        self.num_paraphrased_questions: int = self._calculate_num_paraphrased_questions(elems)
         self.tokenizer = None
         self.batch_size: int = args.batch_size
         self.pad_token_id: int = self.tokenizer.pad_token_id if (self.tokenizer is not None) else 0
@@ -160,7 +160,6 @@ class QADataset(Dataset):
             cls,
             elems: List[Dict],
             num_answers: int,
-            unique_samples: bool,
             lowercase_passage: bool,
             lowercase_question: bool,
             max_context_length: int,
@@ -196,7 +195,7 @@ class QADataset(Dataset):
                 qid = qa['qid']
                 question_tokens_idxs: List[Tuple[str, int]] = qa['question_tokens']
                 question_tokens: List[str] = [
-                    token.lower()
+                    token.lower() if lowercase_question else token
                     for (token, offset) in question_tokens_idxs[:max_question_length]
                 ]
                 question: str = qa['question']
@@ -228,6 +227,15 @@ class QADataset(Dataset):
                 examples += answer_examples
         print(f'Max number of answers in this dataset: {max_num_answers}')
         return examples
+
+    @classmethod
+    def _calculate_num_paraphrased_questions(cls, elems: List[Dict]) -> int:
+        num_paraphrased_questions = 0
+        for example in elems:
+            for qa_dict in example['qas']:
+                if 'question_original' in qa_dict and qa_dict['question'] != qa_dict.get('question_original'):
+                    num_paraphrased_questions += 1
+        return num_paraphrased_questions
 
     def _create_data_generator(self, shuffle_examples=False):
         """
@@ -278,7 +286,7 @@ class QADataset(Dataset):
 
         return zip(passages, questions, start_positions, end_positions)
 
-    def _create_batches(self, generator, batch_size):
+    def _create_batches(self, generator, batch_size) -> Dict:
         """
         This is a generator that gives one batch at a time. Tensors are
         converted to "cuda" if necessary.

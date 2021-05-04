@@ -3,3 +3,5 @@ __pycache__/
 glove/
 venv/
 .ipynb_checkpoints/
+models/
+preds/
