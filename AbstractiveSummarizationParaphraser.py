@@ -29,7 +29,7 @@ class PegasusParaphraser(AbstractiveSummarizationParaphraser):
         assert args.pretrained_model_name in self.PRETRAINED_MODEL_NAMES
         self.pretrained_model_name = args.pretrained_model_name
         logging.info(f'Loading Pegasus ({self.pretrained_model_name})')
-        self.model = ''#PegasusForConditionalGeneration.from_pretrained(self.pretrained_model_name).to(self.device)
+        self.model = PegasusForConditionalGeneration.from_pretrained(self.pretrained_model_name).to(self.device)
         self.tokenizer: PegasusTokenizer = PegasusTokenizer.from_pretrained(self.pretrained_model_name)
 
     def _generate_paraphrases(

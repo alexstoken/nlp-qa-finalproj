@@ -57,9 +57,13 @@ def paraphrase(args):
 
     paraphrased_examples = []
     start = time.time()
-    for batch_start in range(0, len(examples), batch_size):
-        batched_examples = examples[batch_start:batch_start + batch_size]
+    for batch_idx, batch_start in enumerate(range(0, len(examples), args.batch_size)):
         
+        batched_examples = examples[batch_start:batch_start + args.batch_size]
+        if args.batch_size == 1:
+            batched_examples = batched_examples[0]
+
+
         ## Options ['question', 'around_answer_sent', 'answer', 'answer_sent']
         logging.info('=' * 50)
         logging.info('=' * 50)
@@ -74,12 +78,12 @@ def paraphrase(args):
             paraphrased_examples.append(paraphraser.paraphrase_answer_sent(batched_examples))
         else:
             raise NotImplementedError(f'Cannot paraphrase "{args.paraphrase}"')
-        if (i + 1) % 10 == 0:
+        if (batch_idx + 1) % 10 == 0:
             now = time.time()
-            print(f'Took {(now - start):.3f} seconds total to paraphrase {i + 1} of {len(examples)} examples '
-                  f'({(now - start) / (i + 1):.3f} seconds/example).')
-            if (i + 1) % (len(examples) // 10) == 0:  ## Save 10 checkpoints
-                with gzip.open(os.path.join(output_dir, output_file_name + f'-{i + 1}' + '.jsonl.gz'), 'wb') as out:
+            print(f'Took {(now - start):.3f} seconds total to paraphrase {batch_start+ 1} of {len(examples)} examples '
+                  f'({(now - start) / (batch_start + args.batch_size + 1):.3f} seconds/example).')
+            if (batch_idx + 1) % (len(examples) // 10) == 0:  ## Save 10 checkpoints
+                with gzip.open(os.path.join(output_dir, output_file_name + f'-{batch_start + args.batch_size + 1}' + '.jsonl.gz'), 'wb') as out:
                     for ex in [meta] + paraphrased_examples:
                         ## Ref: https://stackoverflow.com/a/39451012
                         out.write((json.dumps(ex) + '\n').encode('utf-8'))
@@ -121,7 +125,7 @@ if __name__ == '__main__':
     
     parser.add_argument(
         '--batch_size',
-        type=float,
+        type=int,
         default=124,
         help='batch size to pass to paraphrasers',
     )

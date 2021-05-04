@@ -269,16 +269,45 @@ class AbstractParaphraser(ABC):
         passage: str = example['context']
         passage_tokens: List[str] = [x[0] for x in example['context_tokens']]
             
+        print('\nOriginal Passage\n', '='*50+'\n', passage)
+            
         passage_sent_tokens = sent_tokenize(passage)
-        print(passage_sent_tokens)
-        for qa_dict in example['qas']:
+        # print(passage_sent_tokens)
+        for qa_idx, qa_dict in enumerate(example['qas']):
             print(qa_dict.keys())
-            for idx, answer in enumerate(qa_dict['detected_answers']):
-                answer_span = answer['token_spans'][idx]
+            
+            for ans_idx, answer in enumerate(qa_dict['detected_answers']):
+                answer_span = answer['token_spans'][ans_idx]
                 answer_start_idx, answer_end_idx = answer_span
                 
-                print(answer_span,answer_start_idx,  answer_end_idx)
-        return None  ##TODO
+                #print(answer_span,answer_start_idx,  answer_end_idx)
+                
+                answer_tokens = passage_tokens[answer_start_idx:answer_end_idx+1]
+                answer_string = ' '.join(answer_tokens)
+                
+                # find sentence with answer string in it:
+                answer_sent_idx = None
+                for sent_idx, sent in enumerate(passage_sent_tokens):
+                    if sent.find(answer_string) != -1:
+                        answer_sent_idx = sent_idx
+                assert answer_sent_idx != None
+                
+                beginning_to_ans_sent = ' '.join(passage_sent_tokens[:answer_sent_idx])
+                after_ans_sent_to_end = ' '.join(passage_sent_tokens[answer_sent_idx+1:])
+                
+                beginning_to_ans_sent_tokens = self.get_token_idxs(beginning_to_ans_sent, self.tokenize(beginning_to_ans_sent))
+                after_ans_sent_to_end_tokens = self.get_token_idxs(after_ans_sent_to_end, self.tokenize(after_ans_sent_to_end))
+                
+                beginning_to_ans_sent_para, beginning_to_ans_sent_para_tokens = self.paraphrase(beginning_to_ans_sent, beginning_to_ans_sent_tokens)
+                
+                after_ans_sent_to_end_para, after_ans_sent_to_end_para_tokens = self.paraphrase(after_ans_sent_to_end, after_ans_sent_to_end_tokens)
+                                                                                           
+                example['context'] =  beginning_to_ans_sent_para + passage_sent_tokens[answer_sent_idx]+ after_ans_sent_to_end_para
+                
+                example['context_tokens'] = self.get_token_idxs(example['context'], self.tokenize(example['context']))
+    
+        print('\nNew Context Passage\n', '='*50+'\n',example['context'])
+        return example  ##TODO
 
     def paraphrase_answer(self, example: Dict) -> Dict:
         """
@@ -289,26 +318,26 @@ class AbstractParaphraser(ABC):
         example = copy.deepcopy(example)
         passage: str = example['context']
         passage_tokens: List[str] = [x[0] for x in example['context_tokens']]
-        for qa_dict in example['qas']:
+        for qa_idx, qa_dict in enumaerate(example['qas']):
             print(qa_dict.keys())
             print(qa_dict)
-            for idx, answer in enumerate(qa_dict['detected_answers']):
-                answer_span = answer['token_spans'][idx]
+            for ans_idx, answer in enumerate(qa_dict['detected_answers']):
+                answer_span = answer['token_spans'][ans_idx]
                 answer_start_idx, answer_end_idx = answer_span
                 
                 print(answer_span,answer_start_idx,  answer_end_idx)
                 
-                ans_tokens = passage_tokens[answer_start_idx:answer_end_idx+1]
-                ans_string = ' '.join(ans_tokens)
-                print(ans_tokens, ans_string)
+                answer_tokens = passage_tokens[answer_start_idx:answer_end_idx+1]
+                answer_string = ' '.join(ans_tokens)
+                print(answer_tokens, answer_string)
             # extract answer from passage using 
                 paraphrased_answer, paraphrased_answer_tokens = self.paraphrase(answer, answer_tokens)
                 
-                qa_dict['answer']: str = paraphrased_answer
-                qa_dict['answer_tokens']: List[Tuple[str, int]] = self.get_token_idxs(
+                example[qa_idx][ans_idx]['text']: str = paraphrased_answer
+                example[qa_idx][ans_idx]['token_spans'][-1] = answer_start_idx + len(paraphrased_answer) -1
+                example['context'][answer_start_idx:answer_end_idx]: List[Tuple[str, int]] = self.get_token_idxs(
                 paraphrased_answer, paraphrased_answer_tokens
             )
-            qa_dict['answer_is_paraphrased']: bool = True
 
         return example
 
