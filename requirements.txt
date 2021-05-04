@@ -5,7 +5,7 @@ nvidia-ml-py3==7.352.0
 psutil==5.7.0
 six==1.14.0
 termcolor==1.1.0
-torch==1.4.0
+torch==1.7.1
 tqdm==4.44.1
 cython
 fastbpe
@@ -13,3 +13,4 @@ sacremoses
 subword_nmt
 transformers==4.5.1
 sentencepiece==0.1.95
+nltk
