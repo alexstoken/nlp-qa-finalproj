@@ -53,12 +53,12 @@ class FairSeqParaphraser(MachineTranslationParaphraser):
         forward_bin = self.forward_model.binarize(forward_bpe)
         paraphrases_bin_list = self.backward_model.generate(forward_bin, beam=10, sampling=True, sampling_topk=20)
         
-        # tdetokenizse and retokenize
+        # detokenise and create return lists
         paraphrase_list = []
         paraphrase_tokens_list = []
         for paraphrase_bin in paraphrases_bin_list:
             paraphrase_sample = paraphrase_bin['tokens']
-            paraphrase_bpe = self.backward_model.string(paraphrase_tokens)
+            paraphrase_bpe = self.backward_model.string(paraphrase_sample)
             paraphrase_tokens = self.backward_model.remove_bpe(paraphrase_bpe)
             paraphrase_string = self.backward_model.detokenize(paraphrase_tokens)
             

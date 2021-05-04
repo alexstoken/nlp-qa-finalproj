@@ -29,6 +29,12 @@ def paraphrase(args):
         output_file_name += f'-mul{args.max_len_multiplier}'
         output_file_name += f'-beam{args.num_beams}'
         output_file_name += f'-temp{args.temperature}'
+    elif args.architecture == 'fairseq':
+        ParaphraserSubclass: AbstractParaphraser.__class__ = FairSeqParaphraser
+        output_file_name += f'-fairseq'
+        output_file_name += f'-chk{args.normalized_chunk_length}'
+        output_file_name += f'-mul{args.max_len_multiplier}'
+        output_file_name += f'-beam{args.num_beams}'
     else:
         raise NotImplementedError(f'Unsupported architecture: {args.architecture}')
 
