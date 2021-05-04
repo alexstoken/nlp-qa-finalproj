@@ -199,7 +199,33 @@ class AbstractParaphraser(ABC):
             tokens_idxs.append([token, 0])
         return tokens_idxs
 
+    def paraphrase_questions(self, examples: List[Dict]) -> List[Dict]:
+        """
+        Paraphrapse the question using this model.
+        :param example: List of entries in the dataset. A list of dict with the keys 'context', 'context_tokens', 'qas', etc.
+        :return: examples, with paraphrased question.
+        """
+        examples = copy.deepcopy(examples)
 
+        questions = []
+        for example in examples:
+            for qa_dict in example['qas']:
+                question: str = qa_dict['question']
+                question_tokens: List[Tuple[str, int]] = qa_dict['question_tokens']
+                qa_dict['question_original']: str = question
+                qa_dict['question_tokens_original']: List[Tuple[str, int]] = question_tokens
+        paraphrased_question, paraphrased_question_tokens = self.paraphrase(question, question_tokens)
+                
+        for example in examples:
+            for qa_dict in example['qas']:
+                qa_dict['question']: str = paraphrased_question
+                qa_dict['question_tokens']: List[Tuple[str, int]] = self.get_token_idxs_dummy(
+                    paraphrased_question, paraphrased_question_tokens
+                )
+                qa_dict['question_is_paraphrased']: bool = True
+
+        return example
+    
     def paraphrase_question(self, example: Dict) -> Dict:
         """
         Paraphrapse the question using this model.
@@ -246,6 +272,7 @@ class AbstractParaphraser(ABC):
         passage_sent_tokens = sent_tokenize(passage)
         print(passage_sent_tokens)
         for qa_dict in example['qas']:
+            print(qa_dict.keys())
             for idx, answer in enumerate(qa_dict['detected_answers']):
                 answer_span = answer['token_spans'][idx]
                 answer_start_idx, answer_end_idx = answer_span
