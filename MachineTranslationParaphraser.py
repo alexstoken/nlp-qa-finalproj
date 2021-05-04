@@ -45,7 +45,7 @@ class FairSeqParaphraser(MachineTranslationParaphraser):
         """
         # run input text to get translated text. Uses num_beams to search, but returns 
         # best beam
-        forward_translation = self.forward_model.translate(input_text, beam=self.args.num_beams)
+        forward_translation = self.forward_model.translate(input_text, beam=self.args.num_beams, temperature=self.args.temperature)
         
         # backward translate
         # manually prepare sequence in lang2 for translation back to lang1
@@ -54,7 +54,7 @@ class FairSeqParaphraser(MachineTranslationParaphraser):
         forward_bin = self.backward_model.binarize(forward_bpe)
         
         # get list of len num_beams that is in the original language
-        paraphrases_bin_list = self.backward_model.generate(forward_bin, beam=self.args.num_beams)
+        paraphrases_bin_list = self.backward_model.generate(forward_bin, beam=self.args.num_beams,temperature=self.args.temperature)
         
         # detokenize and create return lists
         paraphrase_list = []
