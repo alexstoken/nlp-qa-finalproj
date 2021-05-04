@@ -25,7 +25,7 @@ class FairSeqParaphraser(MachineTranslationParaphraser):
         forward = torch.hub.load('pytorch/fairseq', forward_model_path, tokenizer='moses', bpe='fastbpe')
         backward = torch.hub.load('pytorch/fairseq', backward_model_path, tokenizer='moses', bpe='fastbpe')
 
-        return forward.eval(), backward.eval()
+        return forward.eval().to(self.device), backward.eval().to(self.device)
 
     def backtranslate(self, sent):
         return self.backward_model.translate(self.forward_model.translate(sent))
@@ -54,7 +54,11 @@ class FairSeqParaphraser(MachineTranslationParaphraser):
         forward_bin = self.backward_model.binarize(forward_bpe)
         
         # get list of len num_beams that is in the original language
-        paraphrases_bin_list = self.backward_model.generate(forward_bin, beam=self.args.num_beams,temperature=self.args.temperature)
+        paraphrases_bin_list = self.backward_model.generate(
+            forward_bin,
+            beam=self.args.num_beams,
+            temperature=self.args.temperature
+        )
         
         # detokenize and create return lists
         paraphrase_list = []
