@@ -17,7 +17,6 @@ class FairSeqParaphraser(MachineTranslationParaphraser):
 
     def __init__(self, args, device):
         super().__init__(args, device)
-        
         self.forward_model, self.backward_model = self._load_translators()
         self.tokenizer = '' # TODO add tokenizer
 
@@ -44,16 +43,20 @@ class FairSeqParaphraser(MachineTranslationParaphraser):
         :param max_length: the maximum length of the paraphrase.
         :return: a list of paraphrased strings
         """
-        # run input text through backtranslate
-        forward_translation = self.forward_model.translate(input_text, beam=10)
+        # run input text to get translated text. Uses num_beams to search, but returns 
+        # best beam
+        forward_translation = self.forward_model.translate(input_text, beam=self.args.num_beams)
         
         # backward translate
-        forward_tokens = self.forward_model.tokenize(forward_translation)
-        forward_bpe = self.forward_model.apply_bpe(forward_tokens)
-        forward_bin = self.forward_model.binarize(forward_bpe)
-        paraphrases_bin_list = self.backward_model.generate(forward_bin, beam=10, sampling=True, sampling_topk=20)
+        # manually prepare sequence in lang2 for translation back to lang1
+        forward_tokens = self.backward_model.tokenize(forward_translation)
+        forward_bpe = self.backward_model.apply_bpe(forward_tokens)
+        forward_bin = self.backward_model.binarize(forward_bpe)
         
-        # detokenise and create return lists
+        # get list of len num_beams that is in the original language
+        paraphrases_bin_list = self.backward_model.generate(forward_bin, beam=self.args.num_beams)
+        
+        # detokenize and create return lists
         paraphrase_list = []
         paraphrase_tokens_list = []
         for paraphrase_bin in paraphrases_bin_list:
@@ -63,8 +66,9 @@ class FairSeqParaphraser(MachineTranslationParaphraser):
             paraphrase_string = self.backward_model.detokenize(paraphrase_tokens)
             
             paraphrase_list.append(paraphrase_string)
-            paraphrase_tokens_list.append(paraphrase_tokens)
+            # retokenize using generic tokenizer, so that we are sure it's not subword
+            paraphrase_tokens_list.append(self.tokenize(paraphrase_string))
             
-        
+        assert len(paraphrase_list) == len(paraphrase_tokens_list) == len(paraphrases_bin_list) == self.args.num_beams
         #return raw output and tokenized input 
         return paraphrase_list, paraphrase_tokens_list
