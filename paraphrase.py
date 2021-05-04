@@ -85,7 +85,7 @@ def paraphrase(args):
             raise NotImplementedError(f'Cannot paraphrase "{args.paraphrase}"')
         if (batch_idx + 1) % 10 == 0:
             now = time.time()
-            print(f'Took {(now - start):.3f} seconds total to paraphrase {batch_start + 1} of {len(examples)} examples '
+            print(f'\n{output_file_name}: Took {(now - start):.3f} seconds total to paraphrase {batch_start + 1} of {len(examples)} examples '
                   f'({(now - start) / (batch_start + args.batch_size + 1):.3f} seconds/example).')
             if (batch_idx + 1) % (len(examples) // 10) == 0:  ## Save 10 checkpoints
                 with gzip.open(os.path.join(output_dir,
