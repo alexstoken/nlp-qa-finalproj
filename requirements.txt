@@ -14,3 +14,5 @@ subword_nmt
 transformers==4.5.1
 sentencepiece==0.1.95
 nltk
+jupyterlab
+ipykernel
