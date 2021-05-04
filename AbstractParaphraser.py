@@ -303,11 +303,13 @@ class AbstractParaphraser(ABC):
                 
                 after_ans_sent_to_end_para, after_ans_sent_to_end_para_tokens = self.paraphrase(after_ans_sent_to_end, after_ans_sent_to_end_tokens)
                                                                                            
-                example['context'] =  beginning_to_ans_sent_para + passage_sent_tokens[answer_sent_idx]+ after_ans_sent_to_end_para
+                new_passage =  beginning_to_ans_sent_para + passage_sent_tokens[answer_sent_idx]+ after_ans_sent_to_end_para
                 
-                example['context_tokens'] = self.get_token_idxs(example['context'], self.tokenize(example['context']))
+                print('\nNew Context Passage\n', '='*50+'\n',new_passage)
+        example['context'] = new_passage
+        example['context_tokens'] = self.get_token_idxs(new_passage, self.tokenize(new_passage))
     
-        print('\nNew Context Passage\n', '='*50+'\n',example['context'])
+        
         return example  ##TODO
 
     def paraphrase_answer(self, example: Dict) -> Dict:
