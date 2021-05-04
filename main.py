@@ -79,8 +79,9 @@ parser.add_argument(
 parser.add_argument(
     '--train_path',
     type=str,
+    nargs='+'
     required=True,
-    help='training dataset path',
+    help='training dataset path or paths',
 )
 parser.add_argument(
     '--dev_path',
@@ -142,6 +143,20 @@ parser.add_argument(
     type=str,
     choices=['paraphrase', 'backtranslate', 'both'],
     help='which data augmentation scheme to use in training')
+
+parser.add_argument(
+    '--paraphrase_sampling_rate',
+    type=float,
+    default=1,
+    help='Rate at which to sample paraphrases',
+)
+
+parser.add_argument(
+    '--paraphrase_score_thresh',
+    type=float,
+    default=1.2, 
+    help='Threshold to consider paraphrase good',
+)
 
 # Optimization arguments.
 parser.add_argument(

@@ -12,6 +12,7 @@ from torch.utils.data import Dataset
 from random import shuffle
 import numpy as np
 from utils import *
+from AbstractParaphraser import AbstractParaphraser
 
 PAD_TOKEN = '[PAD]'
 UNK_TOKEN = '[UNK]'
@@ -139,9 +140,13 @@ class QADataset(Dataset):
         batch_size: Int. The number of example in a mini batch.
     """
 
-    def __init__(self, args, path):
+    def __init__(self, args, paths):
         self.args = args
-        _, elems = load_dataset(path)
+        elems = []
+        for path in paths:
+            _, elem = load_dataset(path)
+            elems.extend(elem)
+        
         self.samples: List[Dict] = self._create_examples(
             elems,
             num_answers=args.num_answers,
@@ -175,6 +180,7 @@ class QADataset(Dataset):
         max_num_answers = 0
         examples: List[Dict] = []
         for elem in elems:
+            
             # Unpack the context paragraph (passage). Shorten to max sequence length.
             passage_tokens_idxs: List[Tuple[str, int]] = elem['context_tokens']
             passage_tokens: List[str] = [
@@ -192,7 +198,11 @@ class QADataset(Dataset):
             # Each passage has several questions associated with it.
             # Additionally, each question has multiple possible answer spans.
             for qa in elem['qas']:
+
                 qid = qa['qid']
+                if qa.has_key('question_is_paraphrased'):
+                    paraphrase_score = AbstractParaphraser._calculate_paraphrase_score(qa['question_tokens_original'], qa['question_tokens'])
+                    pass
                 question_tokens_idxs: List[Tuple[str, int]] = qa['question_tokens']
                 question_tokens: List[str] = [
                     token.lower() if lowercase_question else token

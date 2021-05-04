@@ -21,6 +21,7 @@ parser.add_argument(
     '--path',
     type=str,
     default='datasets/squad_dev.jsonl.gz',
+    nargs='+',
     required=False,
     help='path to display samples from',
 )
@@ -48,6 +49,26 @@ parser.add_argument(
     default=64,
     help='maximum question length (do not change!)',
 )
+parser.add_argument(
+    '--num_answers',
+    type=int,
+    default=1,
+    help='Max number of answers per question',
+)
+parser.add_argument(
+    '--lowercase_passage',
+    type=bool,
+    default=True,
+    help='whether to lowercase the passage text',
+)
+parser.add_argument(
+    '--lowercase_question',
+    type=str,
+    default=True,
+    help='whether to lowercase the question text',
+)
+
+
 
 
 def _build_string(tokens):
