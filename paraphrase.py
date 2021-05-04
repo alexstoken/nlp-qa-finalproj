@@ -57,19 +57,21 @@ def paraphrase(args):
 
     paraphrased_examples = []
     start = time.time()
-    for i, example in enumerate(examples):
+    for batch_start in range(0, len(examples), batch_size):
+        batched_examples = examples[batch_start:batch_start + batch_size]
+        
         ## Options ['question', 'around_answer_sent', 'answer', 'answer_sent']
         logging.info('=' * 50)
         logging.info('=' * 50)
-        logging.info(f'Paraphrasing example {i + 1} of {len(examples)}...\n')
+        logging.info(f'Paraphrasing example {batch_start + 1} of {len(examples)}...\n')
         if args.paraphrase == 'question':
-            paraphrased_examples.append(paraphraser.paraphrase_question(example))
+            paraphrased_examples.append(paraphraser.paraphrase_question(batched_examples))
         elif args.paraphrase == 'around_answer_sent':
-            paraphrased_examples.append(paraphraser.paraphrase_around_answer_sent(example))
+            paraphrased_examples.append(paraphraser.paraphrase_around_answer_sent(batched_examples))
         elif args.paraphrase == 'answer':
-            paraphrased_examples.append(paraphraser.paraphrase_answer(example))
+            paraphrased_examples.append(paraphraser.paraphrase_answer(batched_examples))
         elif args.paraphrase == 'answer_sent':
-            paraphrased_examples.append(paraphraser.paraphrase_answer_sent(example))
+            paraphrased_examples.append(paraphraser.paraphrase_answer_sent(batched_examples))
         else:
             raise NotImplementedError(f'Cannot paraphrase "{args.paraphrase}"')
         if (i + 1) % 10 == 0:
@@ -116,6 +118,14 @@ if __name__ == '__main__':
         required=True,
         help='input dataset path. Should be a .jsonl.gz file',
     )
+    
+    parser.add_argument(
+        '--batch_size',
+        type=float,
+        default=124,
+        help='batch size to pass to paraphrasers',
+    )
+        
     parser.add_argument(
         '--paraphrase',
         type=str,
