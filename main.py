@@ -148,14 +148,14 @@ parser.add_argument(
     '--paraphrase_sampling_rate',
     type=float,
     default=1,
-    help='Rate at which to sample paraphrases',
+    help='Rate at which to sample paraphrases. Default is to always use paraphrase.',
 )
 
 parser.add_argument(
     '--paraphrase_score_thresh',
     type=float,
-    default=1.2, 
-    help='Threshold to consider paraphrase good',
+    default=0, 
+    help='Threshold to consider paraphrase good. Defaults to accepting all paraphrases. Good value is 1.2.',
 )
 
 # Optimization arguments.

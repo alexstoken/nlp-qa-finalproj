@@ -200,15 +200,27 @@ class QADataset(Dataset):
             for qa in elem['qas']:
 
                 qid = qa['qid']
+                
+                # all paraphrase datasets have this extra key
+                # if paraphrase dataset, choose whether to get paraphrase or not
                 if qa.has_key('question_is_paraphrased'):
+                    # calcualte paraphrase score
                     paraphrase_score = AbstractParaphraser._calculate_paraphrase_score(qa['question_tokens_original'], qa['question_tokens'])
-                    pass
-                question_tokens_idxs: List[Tuple[str, int]] = qa['question_tokens']
+                    if paraphrase_score > self.args.paraphrase_score_thresh and np.randon.rand() < self.args.paraphrase_sampling_rate:
+                        question_tokens_idxs: List[Tuple[str, int]] = qa['question_tokens']
+                        question: str = qa['question']
+                    else:
+                        question_tokens_idxs: List[Tuple[str, int]] = qa['question_tokens_original']
+                        question: str = qa['question_original']
+                else:
+                    question_tokens_idxs: List[Tuple[str, int]] = qa['question_tokens']
+                    question: str = qa['question']
+                        
                 question_tokens: List[str] = [
                     token.lower() if lowercase_question else token
                     for (token, offset) in question_tokens_idxs[:max_question_length]
                 ]
-                question: str = qa['question']
+                
                 final_question_token_idx: int = min(max_question_length, len(question_tokens_idxs)) - 1
                 final_question_token_start_idx: int = question_tokens_idxs[final_question_token_idx][1]
                 final_question_token_len = len(question_tokens_idxs[final_question_token_idx][0])
