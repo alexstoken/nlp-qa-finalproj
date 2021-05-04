@@ -1,0 +1,20 @@
+{
+    "verbose": false,
+    "device": 5,
+    "use_gpu": true,
+    "input_path": "datasets/bioasq_dev.jsonl.gz",
+    "batch_size": 1,
+    "paraphrase": "question",
+    "architecture": "pegasus",
+    "pretrained_model_name": "google/pegasus-xsum",
+    "normalized_chunk_length": 20,
+    "max_len_multiplier": 2.0,
+    "num_beams": 75,
+    "temperature": 1.5,
+    "use_scoring_function": true,
+    "score_threshold": 1.2,
+    "score_n_gram": 1,
+    "print_top_k_paraphrases": 3,
+    "print_bottom_k_paraphrases": 3,
+    "paraphrase_joiner": "\n"
+}
