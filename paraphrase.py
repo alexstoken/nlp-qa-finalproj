@@ -89,7 +89,7 @@ def paraphrase(args):
                   f'paraphrase {batch_start + 1} of {len(examples)} examples '
                   f'({(now - start) / (batch_start + args.batch_size + 1):.3f} seconds/example).')
         if (batch_idx + 1) % (len(examples) // args.num_checkpoints) == 0:
-            print(f'\n{output_file_name}: Saving checkpoint: with {len(paraphrased_examples)} examples.')
+            print(f'\n{output_file_name}: Saving checkpoint with {len(paraphrased_examples)} examples.')
             with gzip.open(
                     os.path.join(output_dir, output_file_name + f'-{batch_start + args.batch_size + 1}' + '.jsonl.gz'),
                     'wb') as out:

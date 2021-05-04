@@ -321,7 +321,7 @@ class AbstractParaphraser(ABC):
         example = copy.deepcopy(example)
         passage: str = example['context']
         passage_tokens: List[str] = [x[0] for x in example['context_tokens']]
-        for qa_idx, qa_dict in enumaerate(example['qas']):
+        for qa_idx, qa_dict in enumerate(example['qas']):
             print(qa_dict.keys())
             print(qa_dict)
             for ans_idx, answer in enumerate(qa_dict['detected_answers']):
@@ -410,11 +410,13 @@ class AbstractParaphraser(ABC):
             if print_top_k > 0:
                 logging.info(f'> Top {print_top_k} paraphrases by beam search:')
                 for paraphrase_rank, paraphrase, paraphrase_tokens in scored_paraphrases[:print_top_k]:
-                    logging.info((paraphrase_rank, paraphrase), end='\n\n')
+                    logging.info((paraphrase_rank, paraphrase))
+                    logging.info('')
             if print_bottom_k > 0:
                 logging.info(f'> Bottom {print_top_k} paraphrases by beam search:')
                 for paraphrase_rank, paraphrase, paraphrase_tokens in scored_paraphrases[-print_bottom_k:]:
-                    logging.info((paraphrase_rank, paraphrase), end='\n\n')
+                    logging.info((paraphrase_rank, paraphrase))
+                    logging.info('')
             ## Return those with highest rank:
             return paraphrases_list[0], paraphrase_tokens_list[0]
 
