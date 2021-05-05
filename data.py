@@ -251,8 +251,9 @@ class QADataset(Dataset):
                         ## We are below the score threshold or we are done sampling enough, DON'T use the paraphrase.
                         ## Otherwise use original tokens
                         # ''')
-                        question_tokens_idxs: List[Tuple[str, int]] = qa['question_tokens_original']
-                        question: str = qa['question_original']
+                        continue
+                        #question_tokens_idxs: List[Tuple[str, int]] = qa['question_tokens_original']
+                        #question: str = qa['question_original']
 
                 # print(f'question:\n{question}')
                 # print(f'\nquestion_tokens_idxs:\n{question_tokens_idxs}')
