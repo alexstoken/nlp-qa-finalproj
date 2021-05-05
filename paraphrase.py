@@ -35,8 +35,9 @@ def paraphrase(args):
         output_file_name += f'-chk{args.normalized_chunk_length}'
         output_file_name += f'-mul{args.max_len_multiplier}'
         output_file_name += f'-beam{args.num_beams}'
+        output_file_name += f'-temp{args.temperature}'  ## We should have added this earlier.
         if args.MT_sampling:
-            output_file_name += f'-sampling_k{args.MT_sampling_topk}'
+            output_file_name += f'-MT_sampling_k{args.MT_sampling_topk}'
     else:
         raise NotImplementedError(f'Unsupported architecture: {args.architecture}')
 
@@ -46,9 +47,6 @@ def paraphrase(args):
         output_file_name += f'-ngram{args.score_n_gram}'
 
     output_dir = os.sep.join(args.input_path.split(os.sep)[:-1])
-    output_path = os.path.join(output_dir, output_file_name + '.jsonl.gz')
-    output_args_path = os.path.join(output_dir, output_file_name + '.args.json')
-    print(f'We will write to:\n  {output_path}\n  {output_args_path}')
 
     ## Setup device:
     device = torch.device('cpu')
@@ -63,18 +61,43 @@ def paraphrase(args):
     ## Load paraphraser to memory
     paraphraser: AbstractParaphraser = ParaphraserSubclass(args, device)
 
+    if isinstance(args.examples_range, str) and args.examples_range.strip().lower() != 'start:end':
+        ## Example ranges:
+        ## 1:100
+        ## 101:200
+        ## 201:300
+        ## etc
+        range_start_idx = args.examples_range.split(':')[0].strip()
+        if range_start_idx == '' or range_start_idx.lower() == 'start':
+            range_start_idx = 0
+        range_start_idx = max(0, int(range_start_idx) - 1)  ## range_start_idx must be a valid index
+        range_end_idx = args.examples_range.split(':')[1].strip()
+        if range_end_idx == '' or range_end_idx.lower() == 'end':
+            range_end_idx = len(examples)
+        range_end_idx = min(len(examples) - 1, int(range_end_idx) - 1)  ## range_end_idx must be a valid index
+        examples = examples[range_start_idx:range_end_idx + 1]
+        print(f'We will only paraphrase from {range_start_idx + 1} to {range_end_idx + 1} ({len(examples)} examples)')
+        output_file_name += f'-range_{range_start_idx + 1}_{range_end_idx + 1}'
+        meta['header']['examples_range'] = f'{range_start_idx + 1}:{range_end_idx + 1}'
+
+    print('~'*100)
+    print('~'*100)
+    print(f'{output_file_name}')
+    print('~'*100)
+    print('~'*100)
+
     paraphrased_examples = []
     start = time.time()
-    for batch_idx, batch_start in enumerate(range(0, len(examples), args.batch_size)):
-
-        batched_examples = examples[batch_start:batch_start + args.batch_size]
-        if args.batch_size == 1:
+    batch_size = 1  ## TODO: implement bigger batching for faser paraphrasing.
+    for batch_idx, batch_start in enumerate(range(0, len(examples), batch_size)):
+        batched_examples = examples[batch_start:batch_start + batch_size]
+        if batch_size == 1:
             batched_examples = batched_examples[0]
 
-        ## Options ['question', 'around_answer_sent', 'answer', 'answer_sent']
         logging.info('=' * 50)
         logging.info('=' * 50)
         logging.info(f'Paraphrasing example {batch_start + 1} of {len(examples)}...\n')
+
         if args.paraphrase == 'question':
             paraphrased_examples.append(paraphraser.paraphrase_question(batched_examples))
         elif args.paraphrase == 'around_answer_sent':
@@ -89,15 +112,19 @@ def paraphrase(args):
             now = time.time()
             print(f'\n{output_file_name}: Took {(now - start):.3f} seconds total to '
                   f'paraphrase {batch_start + 1} of {len(examples)} examples '
-                  f'({(now - start) / (batch_start + args.batch_size + 1):.3f} seconds/example).')
-        if (batch_idx + 1) % (len(examples) // args.num_checkpoints) == 0:
+                  f'({(now - start) / (batch_start + batch_size + 1):.3f} seconds/example).')
+        if args.num_checkpoints != 0 and (batch_idx + 1) % (len(examples) // args.num_checkpoints) == 0:
             print(f'\n{output_file_name}: Saving checkpoint with {len(paraphrased_examples)} examples.')
             with gzip.open(
-                    os.path.join(output_dir, output_file_name + f'-{batch_start + args.batch_size + 1}' + '.jsonl.gz'),
+                    os.path.join(output_dir, output_file_name + f'-{batch_start + batch_size + 1}' + '.jsonl.gz'),
                     'wb') as out:
                 for ex in [meta] + paraphrased_examples:
                     ## Ref: https://stackoverflow.com/a/39451012
                     out.write((json.dumps(ex) + '\n').encode('utf-8'))
+
+    output_path = os.path.join(output_dir, output_file_name + '.jsonl.gz')
+    output_args_path = os.path.join(output_dir, output_file_name + '.args.json')
+    print(f'We will write to:\n  {output_path}\n  {output_args_path}')
 
     with gzip.open(output_path, 'wb') as out:
         for ex in [meta] + paraphrased_examples:
@@ -140,11 +167,19 @@ if __name__ == '__main__':
         help='input dataset path. Should be a .jsonl.gz file',
     )
 
+    ## This arg is ignored, 1 is always used:
     parser.add_argument(
         '--batch_size',
         type=int,
-        default=124,
+        default=1,
         help='batch size to pass to paraphrasers',
+    )
+
+    parser.add_argument(
+        '--examples_range',
+        type=str,
+        default='start:end',
+        help='Range of examples to process. By default, does everything',
     )
 
     parser.add_argument(
@@ -230,11 +265,11 @@ if __name__ == '__main__':
         default='\n',
         help='output dataset path. Should be a .jsonl.gz file',
     )
-    
+
     parser.add_argument(
-    '--MT_sampling',
-    action='store_true',
-    help='Use sampling in machine translation. If false, uses greedy beam search',
+        '--MT_sampling',
+        action='store_true',
+        help='Use sampling in machine translation. If false, uses greedy beam search',
     )
 
     parser.add_argument(
