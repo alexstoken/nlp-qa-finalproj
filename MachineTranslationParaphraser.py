@@ -55,6 +55,8 @@ class FairSeqParaphraser(MachineTranslationParaphraser):
         
         # get list of len num_beams that is in the original language
         if self.args.MT_sampling:
+            if self.args.verbose:
+                print('using sampling!')
             paraphrases_bin_list = self.backward_model.generate(
                                                                 forward_bin,
                                                                 beam=self.args.num_beams,
@@ -63,6 +65,8 @@ class FairSeqParaphraser(MachineTranslationParaphraser):
                                                                 sampling_topk=self.args.MT_sampling_topk
                                                                 )
         else:
+            if self.args.verbose:
+                print('NOT using sampling')
             paraphrases_bin_list = self.backward_model.generate(
                                                                 forward_bin,
                                                                 beam=self.args.num_beams,
