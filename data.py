@@ -218,14 +218,15 @@ class QADataset(Dataset):
             for qa in elem['qas']:
                 qid = qa['qid']
                 # print(qa)
-                if 'question_is_paraphrased' not in qa or qa['question'] == qa.get('question_original'):
+                if 'question_is_paraphrased' not in qa:
                     # print('''
                     ## We have a dataset which is not paraphrased, or a question which has an identical paraphrase.
                     ## In both cases, keep the original question:
                     # ''')
                     question_tokens_idxs: List[Tuple[str, int]] = qa['question_tokens']
                     question: str = qa['question']
-
+                elif qa['question'] == qa.get('question_original'):
+                    continue
                 else:
                     ## The question has a paraphrase. Now, we must decide whether to use it, depending on the paraphrase
                     ## score and sampling rate.
