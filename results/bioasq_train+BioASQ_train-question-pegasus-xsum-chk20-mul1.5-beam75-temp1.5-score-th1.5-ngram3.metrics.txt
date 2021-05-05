@@ -1,10 +1,10 @@
-{"EM": 66.74, "F1": 73.22, "train_dataset.size": 1109, "train_dataset.num_paraphrased_questions": 56, "dev_dataset.size": 451, "dev_dataset.num_paraphrased_questions": 0}
-{"EM": 66.52, "F1": 72.88, "train_dataset.size": 1109, "train_dataset.num_paraphrased_questions": 56, "dev_dataset.size": 451, "dev_dataset.num_paraphrased_questions": 0}
-{"EM": 65.19, "F1": 72.15, "train_dataset.size": 1109, "train_dataset.num_paraphrased_questions": 56, "dev_dataset.size": 451, "dev_dataset.num_paraphrased_questions": 0}
+{"EM": 66.08, "F1": 72.08, "train_dataset.size": 1109, "train_dataset.num_paraphrased_questions": 56, "dev_dataset.size": 451, "dev_dataset.num_paraphrased_questions": 0}
+{"EM": 63.19, "F1": 70.0, "train_dataset.size": 1109, "train_dataset.num_paraphrased_questions": 56, "dev_dataset.size": 451, "dev_dataset.num_paraphrased_questions": 0}
+{"EM": 65.63, "F1": 72.31, "train_dataset.size": 1109, "train_dataset.num_paraphrased_questions": 56, "dev_dataset.size": 451, "dev_dataset.num_paraphrased_questions": 0}
 
 AVERAGE:
-{"EM": 66.15, "F1": 72.75, "train_dataset.size": 1109.0, "train_dataset.num_paraphrased_questions": 56.0, "dev_dataset.size": 451.0, "dev_dataset.num_paraphrased_questions": 0.0}
+{"EM": 64.97, "F1": 71.46, "train_dataset.size": 1109.0, "train_dataset.num_paraphrased_questions": 56.0, "dev_dataset.size": 451.0, "dev_dataset.num_paraphrased_questions": 0.0}
 MIN:
-{"EM": 65.19, "F1": 72.15, "train_dataset.size": 1109.0, "train_dataset.num_paraphrased_questions": 56.0, "dev_dataset.size": 451.0, "dev_dataset.num_paraphrased_questions": 0.0}
+{"EM": 63.19, "F1": 70.0, "train_dataset.size": 1109.0, "train_dataset.num_paraphrased_questions": 56.0, "dev_dataset.size": 451.0, "dev_dataset.num_paraphrased_questions": 0.0}
 MAX:
-{"EM": 66.74, "F1": 73.22, "train_dataset.size": 1109.0, "train_dataset.num_paraphrased_questions": 56.0, "dev_dataset.size": 451.0, "dev_dataset.num_paraphrased_questions": 0.0}
+{"EM": 66.08, "F1": 72.31, "train_dataset.size": 1109.0, "train_dataset.num_paraphrased_questions": 56.0, "dev_dataset.size": 451.0, "dev_dataset.num_paraphrased_questions": 0.0}
