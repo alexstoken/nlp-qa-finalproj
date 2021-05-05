@@ -1,12 +1,10 @@
-{"EM": 68.07, "F1": 74.29, "train_dataset.size": 1053, "train_dataset.num_paraphrased_questions": 67, "dev_dataset.size": 451, "dev_dataset.num_paraphrased_questions": 451}
-{"EM": 66.74, "F1": 72.6, "train_dataset.size": 1053, "train_dataset.num_paraphrased_questions": 67, "dev_dataset.size": 451, "dev_dataset.num_paraphrased_questions": 451}
-{"EM": 67.85, "F1": 72.86, "train_dataset.size": 1053, "train_dataset.num_paraphrased_questions": 67, "dev_dataset.size": 451, "dev_dataset.num_paraphrased_questions": 451}
-{"EM": 69.62, "F1": 75.3, "train_dataset.size": 1053, "train_dataset.num_paraphrased_questions": 67, "dev_dataset.size": 451, "dev_dataset.num_paraphrased_questions": 451}
-{"EM": 67.85, "F1": 73.31, "train_dataset.size": 1053, "train_dataset.num_paraphrased_questions": 67, "dev_dataset.size": 451, "dev_dataset.num_paraphrased_questions": 451}
+{"EM": 66.74, "F1": 73.29, "train_dataset.size": 1053, "train_dataset.num_paraphrased_questions": 31, "dev_dataset.size": 451, "dev_dataset.num_paraphrased_questions": 0}
+{"EM": 66.08, "F1": 72.48, "train_dataset.size": 1053, "train_dataset.num_paraphrased_questions": 31, "dev_dataset.size": 451, "dev_dataset.num_paraphrased_questions": 0}
+{"EM": 67.85, "F1": 73.13, "train_dataset.size": 1053, "train_dataset.num_paraphrased_questions": 31, "dev_dataset.size": 451, "dev_dataset.num_paraphrased_questions": 0}
 
 AVERAGE:
-{"EM": 68.026, "F1": 73.672, "train_dataset.size": 1053.0, "train_dataset.num_paraphrased_questions": 67.0, "dev_dataset.size": 451.0, "dev_dataset.num_paraphrased_questions": 451.0}
+{"EM": 66.89, "F1": 72.97, "train_dataset.size": 1053.0, "train_dataset.num_paraphrased_questions": 31.0, "dev_dataset.size": 451.0, "dev_dataset.num_paraphrased_questions": 0.0}
 MIN:
-{"EM": 66.74, "F1": 72.6, "train_dataset.size": 1053.0, "train_dataset.num_paraphrased_questions": 67.0, "dev_dataset.size": 451.0, "dev_dataset.num_paraphrased_questions": 451.0}
+{"EM": 66.08, "F1": 72.48, "train_dataset.size": 1053.0, "train_dataset.num_paraphrased_questions": 31.0, "dev_dataset.size": 451.0, "dev_dataset.num_paraphrased_questions": 0.0}
 MAX:
-{"EM": 69.62, "F1": 75.3, "train_dataset.size": 1053.0, "train_dataset.num_paraphrased_questions": 67.0, "dev_dataset.size": 451.0, "dev_dataset.num_paraphrased_questions": 451.0}
+{"EM": 67.85, "F1": 73.29, "train_dataset.size": 1053.0, "train_dataset.num_paraphrased_questions": 31.0, "dev_dataset.size": 451.0, "dev_dataset.num_paraphrased_questions": 0.0}
