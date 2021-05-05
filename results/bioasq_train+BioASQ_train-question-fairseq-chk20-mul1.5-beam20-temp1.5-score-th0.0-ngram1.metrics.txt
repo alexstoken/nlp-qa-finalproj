@@ -1,10 +1,10 @@
-{"EM": 59.42, "F1": 67.89, "train_dataset.size": 2106, "train_dataset.num_paraphrased_questions": 1052, "dev_dataset.size": 451, "dev_dataset.num_paraphrased_questions": 0}
-{"EM": 56.54, "F1": 65.34, "train_dataset.size": 2106, "train_dataset.num_paraphrased_questions": 1052, "dev_dataset.size": 451, "dev_dataset.num_paraphrased_questions": 0}
-{"EM": 57.43, "F1": 66.36, "train_dataset.size": 2106, "train_dataset.num_paraphrased_questions": 1052, "dev_dataset.size": 451, "dev_dataset.num_paraphrased_questions": 0}
+{"EM": 57.21, "F1": 66.11, "train_dataset.size": 2105, "train_dataset.num_paraphrased_questions": 1052, "dev_dataset.size": 451, "dev_dataset.num_paraphrased_questions": 0}
+{"EM": 60.53, "F1": 68.01, "train_dataset.size": 2105, "train_dataset.num_paraphrased_questions": 1052, "dev_dataset.size": 451, "dev_dataset.num_paraphrased_questions": 0}
+{"EM": 62.97, "F1": 69.32, "train_dataset.size": 2105, "train_dataset.num_paraphrased_questions": 1052, "dev_dataset.size": 451, "dev_dataset.num_paraphrased_questions": 0}
 
 AVERAGE:
-{"EM": 57.8, "F1": 66.53, "train_dataset.size": 2106.0, "train_dataset.num_paraphrased_questions": 1052.0, "dev_dataset.size": 451.0, "dev_dataset.num_paraphrased_questions": 0.0}
+{"EM": 60.24, "F1": 67.81, "train_dataset.size": 2105.0, "train_dataset.num_paraphrased_questions": 1052.0, "dev_dataset.size": 451.0, "dev_dataset.num_paraphrased_questions": 0.0}
 MIN:
-{"EM": 56.54, "F1": 65.34, "train_dataset.size": 2106.0, "train_dataset.num_paraphrased_questions": 1052.0, "dev_dataset.size": 451.0, "dev_dataset.num_paraphrased_questions": 0.0}
+{"EM": 57.21, "F1": 66.11, "train_dataset.size": 2105.0, "train_dataset.num_paraphrased_questions": 1052.0, "dev_dataset.size": 451.0, "dev_dataset.num_paraphrased_questions": 0.0}
 MAX:
-{"EM": 59.42, "F1": 67.89, "train_dataset.size": 2106.0, "train_dataset.num_paraphrased_questions": 1052.0, "dev_dataset.size": 451.0, "dev_dataset.num_paraphrased_questions": 0.0}
+{"EM": 62.97, "F1": 69.32, "train_dataset.size": 2105.0, "train_dataset.num_paraphrased_questions": 1052.0, "dev_dataset.size": 451.0, "dev_dataset.num_paraphrased_questions": 0.0}
