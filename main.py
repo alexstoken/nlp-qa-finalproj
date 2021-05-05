@@ -576,6 +576,15 @@ def main(args):
         if args.paraphrase_rate < 1.0:
             metric_path_suffix += f'-rate{args.paraphrase_rate}'
         metrics_path = metrics_path.replace('.metrics.txt', f'{metric_path_suffix}.metrics.txt')
+    else:
+        metrics_path = re.sub('-score-.*', '', metrics_path)
+        metric_path_suffix = '-score'
+        metric_path_suffix += f'-th{args.paraphrase_score_thresh}'
+        metric_path_suffix += f'-ngram{args.paraphrase_score_n_gram}'
+        if args.paraphrase_rate < 1.0:
+            metric_path_suffix += f'-rate{args.paraphrase_rate}'
+        metrics_path += metric_path_suffix
+        metrics_path += '.metrics.txt'
 
     os.system(f'rm {metrics_path}')
     print(f'\nWe will save results to {metrics_path}')
