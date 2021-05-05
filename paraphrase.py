@@ -35,6 +35,8 @@ def paraphrase(args):
         output_file_name += f'-chk{args.normalized_chunk_length}'
         output_file_name += f'-mul{args.max_len_multiplier}'
         output_file_name += f'-beam{args.num_beams}'
+        if args.MT_sampling:
+            output_file_name += f'-sampling_k{args.MT_sampling_topk}'
     else:
         raise NotImplementedError(f'Unsupported architecture: {args.architecture}')
 
@@ -227,5 +229,18 @@ if __name__ == '__main__':
         type=str,
         default='\n',
         help='output dataset path. Should be a .jsonl.gz file',
+    )
+    
+    parser.add_argument(
+    '--MT_sampling',
+    action='store_true',
+    help='Use sampling in machine translation. If false, uses greedy beam search',
+    )
+
+    parser.add_argument(
+        '--MT_sampling_topk',
+        type=int,
+        default=50,
+        help='k for top k sampling of next work in MT. Only used when MT_sampling is True',
     )
     paraphrase(parser.parse_args())

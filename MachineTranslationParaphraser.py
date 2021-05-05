@@ -54,11 +54,20 @@ class FairSeqParaphraser(MachineTranslationParaphraser):
         forward_bin = self.backward_model.binarize(forward_bpe)
         
         # get list of len num_beams that is in the original language
-        paraphrases_bin_list = self.backward_model.generate(
-            forward_bin,
-            beam=self.args.num_beams,
-            temperature=self.args.temperature
-        )
+        if self.args.MT_sampling:
+            paraphrases_bin_list = self.backward_model.generate(
+                                                                forward_bin,
+                                                                beam=self.args.num_beams,
+                                                                temperature=self.args.temperature,
+                                                                sampling=self.args.MT_sampling,
+                                                                sampling_topk=self.args.MT_sampling_topk
+                                                                )
+        else:
+            paraphrases_bin_list = self.backward_model.generate(
+                                                                forward_bin,
+                                                                beam=self.args.num_beams,
+                                                                temperature=self.args.temperature
+                                                                )
         
         # detokenize and create return lists
         paraphrase_list = []
