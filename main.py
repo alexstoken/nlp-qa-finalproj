@@ -147,7 +147,7 @@ parser.add_argument(
 parser.add_argument(
     '--paraphrase_sampling_rate',
     type=float,
-    default=1,
+    default=1.,
     help='Rate at which to sample paraphrases. Default is to always use paraphrase.',
 )
 
@@ -157,6 +157,14 @@ parser.add_argument(
     default=0, 
     help='Threshold to consider paraphrase good. Defaults to accepting all paraphrases. Good value is 1.2.',
 )
+
+parser.add_argument(
+    '--ngram',
+    type=int,
+    default=1, 
+    help='ngram for scoring fn',
+)
+
 
 # Optimization arguments.
 parser.add_argument(

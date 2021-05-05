@@ -144,16 +144,12 @@ class QADataset(Dataset):
         
         self.args = args
         elems = []
-        self.ngram=None
-        
+
         # most dev QA datasets will only be one path, so handle that case
         if type(paths)!= list:
             paths= [paths]
+            
         for path in paths:
-            if 'ngram' in path:
-                self.ngram = int(path[path.index('ngram')+len('ngram')])
-
-                assert type(self.ngram) == int
             _, elem = load_dataset(path)
             elems.extend(elem)
         
@@ -164,7 +160,7 @@ class QADataset(Dataset):
             lowercase_question=args.lowercase_question,
             max_context_length=args.max_context_length,
             max_question_length=args.max_question_length,
-            ngram = self.ngram,
+            ngram = args.ngram,
             paraphrase_score_thresh= args.paraphrase_score_thresh,
             paraphrase_sampling_rate= args.paraphrase_sampling_rate
         )
@@ -220,27 +216,32 @@ class QADataset(Dataset):
                 # all paraphrase datasets have this extra key
                 # if paraphrase dataset, choose whether to get paraphrase or not
                 if 'question_is_paraphrased' in qa:
-                    assert ngram != None
+        
                     
                     # if the question isn't changed at all, skip
                     if qa['question'] == qa['question_original']:
                         continue
+                        
                     # calcualte paraphrase score
-
                     question_tokens_original = [x[0] for x in qa['question_tokens_original']]
                     question_tokens = [x[0] for x in qa['question_tokens']]
                     
                     paraphrase_score = AbstractParaphraser._calculate_paraphrase_score(question_tokens_original, question_tokens, ngram)
+                    # if score is above threshold, use paraphrase sample with some probability (sampling rate)
                     if paraphrase_score > paraphrase_score_thresh and np.random.rand() < paraphrase_sampling_rate:
                         question_tokens_idxs: List[Tuple[str, int]] = qa['question_tokens']
                         question: str = qa['question']
+                    # otherwise use original tokens
                     else:
                         question_tokens_idxs: List[Tuple[str, int]] = qa['question_tokens_original']
                         question: str = qa['question_original']
+                            
+                # if a dataset doesnt have paraphrases in it, we always grab question and question tokens
                 else:
                     question_tokens_idxs: List[Tuple[str, int]] = qa['question_tokens']
                     question: str = qa['question']
                         
+                # additional processing of question
                 question_tokens: List[str] = [
                     token.lower() if lowercase_question else token
                     for (token, offset) in question_tokens_idxs[:max_question_length]
