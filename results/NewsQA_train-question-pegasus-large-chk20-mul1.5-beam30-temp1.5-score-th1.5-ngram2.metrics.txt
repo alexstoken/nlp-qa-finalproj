@@ -1,0 +1,10 @@
+{"EM": 30.53, "F1": 44.75, "train_dataset.size": 74160, "train_dataset.num_paraphrased_questions": 1297, "dev_dataset.size": 4212, "dev_dataset.num_paraphrased_questions": 0}
+{"EM": 30.67, "F1": 45.07, "train_dataset.size": 74160, "train_dataset.num_paraphrased_questions": 1297, "dev_dataset.size": 4212, "dev_dataset.num_paraphrased_questions": 0}
+{"EM": 29.96, "F1": 44.56, "train_dataset.size": 74160, "train_dataset.num_paraphrased_questions": 1297, "dev_dataset.size": 4212, "dev_dataset.num_paraphrased_questions": 0}
+
+AVERAGE:
+{"EM": 30.39, "F1": 44.79, "train_dataset.size": 74160.0, "train_dataset.num_paraphrased_questions": 1297.0, "dev_dataset.size": 4212.0, "dev_dataset.num_paraphrased_questions": 0.0}
+MIN:
+{"EM": 29.96, "F1": 44.56, "train_dataset.size": 74160.0, "train_dataset.num_paraphrased_questions": 1297.0, "dev_dataset.size": 4212.0, "dev_dataset.num_paraphrased_questions": 0.0}
+MAX:
+{"EM": 30.67, "F1": 45.07, "train_dataset.size": 74160.0, "train_dataset.num_paraphrased_questions": 1297.0, "dev_dataset.size": 4212.0, "dev_dataset.num_paraphrased_questions": 0.0}
