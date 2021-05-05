@@ -141,9 +141,19 @@ class QADataset(Dataset):
     """
 
     def __init__(self, args, paths):
+        
         self.args = args
         elems = []
+        self.ngram=None
+        
+        # most dev QA datasets will only be one path, so handle that case
+        if type(paths)!= list:
+            paths= [paths]
         for path in paths:
+            if 'ngram' in path:
+                self.ngram = int(path[path.index('ngram')+len('ngram')])
+
+                assert type(self.ngram) == int
             _, elem = load_dataset(path)
             elems.extend(elem)
         
@@ -154,6 +164,9 @@ class QADataset(Dataset):
             lowercase_question=args.lowercase_question,
             max_context_length=args.max_context_length,
             max_question_length=args.max_question_length,
+            ngram = self.ngram,
+            paraphrase_score_thresh= args.paraphrase_score_thresh,
+            paraphrase_sampling_rate= args.paraphrase_sampling_rate
         )
         self.num_paraphrased_questions: int = self._calculate_num_paraphrased_questions(elems)
         self.tokenizer = None
@@ -169,6 +182,9 @@ class QADataset(Dataset):
             lowercase_question: bool,
             max_context_length: int,
             max_question_length: int,
+            ngram: int,
+            paraphrase_score_thresh: float = 0.,
+            paraphrase_sampling_rate: float = 1.,
     ) -> List[Dict]:
         """
         Formats raw examples to desired form. Any passages/questions longer
@@ -203,10 +219,19 @@ class QADataset(Dataset):
                 
                 # all paraphrase datasets have this extra key
                 # if paraphrase dataset, choose whether to get paraphrase or not
-                if qa.has_key('question_is_paraphrased'):
+                if 'question_is_paraphrased' in qa:
+                    assert ngram != None
+                    
+                    # if the question isn't changed at all, skip
+                    if qa['question'] == qa['question_original']:
+                        continue
                     # calcualte paraphrase score
-                    paraphrase_score = AbstractParaphraser._calculate_paraphrase_score(qa['question_tokens_original'], qa['question_tokens'])
-                    if paraphrase_score > self.args.paraphrase_score_thresh and np.randon.rand() < self.args.paraphrase_sampling_rate:
+
+                    question_tokens_original = [x[0] for x in qa['question_tokens_original']]
+                    question_tokens = [x[0] for x in qa['question_tokens']]
+                    
+                    paraphrase_score = AbstractParaphraser._calculate_paraphrase_score(question_tokens_original, question_tokens, ngram)
+                    if paraphrase_score > paraphrase_score_thresh and np.random.rand() < paraphrase_sampling_rate:
                         question_tokens_idxs: List[Tuple[str, int]] = qa['question_tokens']
                         question: str = qa['question']
                     else:
