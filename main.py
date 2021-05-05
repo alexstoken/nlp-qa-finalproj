@@ -128,7 +128,7 @@ parser.add_argument(
 parser.add_argument(
     '--runs',
     type=int,
-    default=5,
+    default=3,
     help='Number of runs',
 )
 parser.add_argument(
@@ -145,26 +145,25 @@ parser.add_argument(
     help='which data augmentation scheme to use in training')
 
 parser.add_argument(
-    '--paraphrase_sampling_rate',
+    '--paraphrase_rate',
     type=float,
-    default=1.,
+    default=1.0,
     help='Rate at which to sample paraphrases. Default is to always use paraphrase.',
 )
 
 parser.add_argument(
     '--paraphrase_score_thresh',
     type=float,
-    default=0, 
+    default=0.0,
     help='Threshold to consider paraphrase good. Defaults to accepting all paraphrases. Good value is 1.2.',
 )
 
 parser.add_argument(
-    '--ngram',
+    '--paraphrase_score_n_gram',
     type=int,
-    default=1, 
-    help='ngram for scoring fn',
+    default=1,
+    help='n_gram for scoring fn',
 )
-
 
 # Optimization arguments.
 parser.add_argument(
@@ -499,15 +498,17 @@ def write_predictions(args, model, dataset):
     with open(args.output_path, 'w+') as f:
         for elem in outputs:
             f.write(f'{json.dumps(elem)}\n')
-            
+
+
 def determine_domain(paths):
-    if type(paths)==list:
+    if type(paths) == list:
         path = paths[0]
 
     if 'news' in path.lower():
         return 'news'
     elif 'bio' in path.lower():
         return 'bio'
+
 
 def base_sample_multiplier(domain, train_dataset):
     if domain == 'news':
@@ -518,12 +519,12 @@ def base_sample_multiplier(domain, train_dataset):
         return None
     return len(train_dataset.samples) / len(base_samples), len(base_samples)
 
+
 def calc_equivalent_epochs(epochs, batch_size, base_samples, train_samples):
     # calculate naive # of grad updates
-    grad_updates = epochs * (base_samples // batch_size) 
-    equivalent_epochs = grad_updates  / (train_samples //batch_size)
+    grad_updates = epochs * (base_samples // batch_size)
+    equivalent_epochs = grad_updates / (train_samples // batch_size)
     return int(np.round(equivalent_epochs))
-    
 
 
 def main(args):
@@ -557,37 +558,47 @@ def main(args):
     args.vocab_size = len(vocabulary)
     args.pad_token_id = tokenizer.pad_token_id
     print(f'vocab words = {len(vocabulary)}')
-    
+
     if type(args.train_path) == list:
         metrics_path = 'results/'
         for idx, path in enumerate(args.train_path):
             if idx != 0:
-                metrics_path+= '+'
-            metrics_path += path[path.find('datasets/')+len('datasets/'):path.find('.jsonl.gz')]
-            
-        metrics_path +='.metrics.txt'
-
+                metrics_path += '+'
+            metrics_path += path[path.find('datasets/') + len('datasets/'):path.find('.jsonl.gz')]
+        metrics_path += '.metrics.txt'
     else:
         metrics_path = args.train_path.replace('.jsonl.gz', '.metrics.txt').replace('datasets', 'results')
     print(metrics_path)
+    if '-score-' not in metrics_path and args.paraphrase_rate > 0.0 and args.paraphrase_score_thresh > 0:
+        metric_path_suffix = '-score'
+        metric_path_suffix += f'-th{args.paraphrase_score_thresh}'
+        metric_path_suffix += f'-ngram{args.paraphrase_score_n_gram}'
+        if args.paraphrase_rate < 1.0:
+            metric_path_suffix += f'-rate{args.paraphrase_rate}'
+        metrics_path = metrics_path.replace('.metrics.txt', f'{metric_path_suffix}.metrics.txt')
+
     os.system(f'rm {metrics_path}')
+    print(f'\nWe will save results to {metrics_path}')
 
     # Print number of samples.
     print(f'train samples = {len(train_dataset)}')
-    print(f'Num paraphrased questions in train dataset: {train_dataset.num_paraphrased_questions}')
+    print(f'Num paraphrased questions in train dataset: {train_dataset.num_paraphrased_questions} '
+          f'({100 * train_dataset.num_paraphrased_questions / len(train_dataset):.1f}%)')
     print('~' * 50)
     print(f'dev samples = {len(dev_dataset)}')
-    print(f'Num paraphrased questions in dev dataset: {dev_dataset.num_paraphrased_questions}')
- 
+    print(f'Num paraphrased questions in dev dataset: {dev_dataset.num_paraphrased_questions} '
+          f'({100 * dev_dataset.num_paraphrased_questions / len(dev_dataset):.1f}%)')
 
     metrics_list = []
-    
-    domain = determine_domain(args.train_path)
-    dataset_multiplier, num_base_samples = base_sample_multiplier(domain, train_dataset)
-    equivalent_epochs = calc_equivalent_epochs(args.epochs, args.batch_size, num_base_samples, len(train_dataset.samples))
-    print(f'This dataset is {dataset_multiplier} times as large as the base training set for {domain}. Instead of {args.epochs} epochs, each run will have {equivalent_epochs} epochs.')
-    
-        
+
+    # domain = determine_domain(args.train_path)
+    # dataset_multiplier, num_base_samples = base_sample_multiplier(domain, train_dataset)
+    # equivalent_epochs = calc_equivalent_epochs(args.epochs, args.batch_size, num_base_samples,
+    #                                            len(train_dataset.samples))
+    equivalent_epochs = args.epochs
+    # print(
+    #     f'This dataset is {dataset_multiplier} times as large as the base training set for {domain}. Instead of {args.epochs} epochs, each run will have {equivalent_epochs} epochs.')
+
     for run_i in range(args.runs):
         print('=' * 100)
         print(' ' * 45 + f'RUN#{run_i + 1}')
@@ -619,7 +630,7 @@ def main(args):
             best_eval_loss = float('inf')
 
             # Begin training.
-            
+
             # adjust epoch # by the amount of paraphrased questions concatenated
             # since we want apples to apples comparision by # of gradient updates
             for epoch in range(1, equivalent_epochs + 1):

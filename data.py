@@ -9,7 +9,7 @@ import itertools
 import torch
 from typing import *
 from torch.utils.data import Dataset
-from random import shuffle
+import random
 import numpy as np
 from utils import *
 from AbstractParaphraser import AbstractParaphraser
@@ -141,30 +141,36 @@ class QADataset(Dataset):
     """
 
     def __init__(self, args, paths):
-        
         self.args = args
         elems = []
 
         # most dev QA datasets will only be one path, so handle that case
-        if type(paths)!= list:
-            paths= [paths]
-            
+        if type(paths) != list:
+            paths = [paths]
+
         for path in paths:
             _, elem = load_dataset(path)
             elems.extend(elem)
-        
-        self.samples: List[Dict] = self._create_examples(
+
+        if self.args.shuffle_examples:
+            ## Necessary to ensure we paraphrase a random selection of questions, rather than just the first N.
+            random.shuffle(elems)
+
+        self.samples, self.num_paraphrased_questions = self._create_examples(
             elems,
             num_answers=args.num_answers,
             lowercase_passage=args.lowercase_passage,
             lowercase_question=args.lowercase_question,
             max_context_length=args.max_context_length,
             max_question_length=args.max_question_length,
-            ngram = args.ngram,
-            paraphrase_score_thresh= args.paraphrase_score_thresh,
-            paraphrase_sampling_rate= args.paraphrase_sampling_rate
+            paraphrase_score_n_gram=args.paraphrase_score_n_gram,
+            paraphrase_score_thresh=args.paraphrase_score_thresh,
+            paraphrase_rate=args.paraphrase_rate,
         )
-        self.num_paraphrased_questions: int = self._calculate_num_paraphrased_questions(elems)
+
+        if self.args.shuffle_examples:
+            ## Shuffle again to ensure we don't get all the paraphrases in a row.
+            random.shuffle(self.samples)
         self.tokenizer = None
         self.batch_size: int = args.batch_size
         self.pad_token_id: int = self.tokenizer.pad_token_id if (self.tokenizer is not None) else 0
@@ -178,10 +184,10 @@ class QADataset(Dataset):
             lowercase_question: bool,
             max_context_length: int,
             max_question_length: int,
-            ngram: int,
-            paraphrase_score_thresh: float = 0.,
-            paraphrase_sampling_rate: float = 1.,
-    ) -> List[Dict]:
+            paraphrase_score_n_gram: int,
+            paraphrase_score_thresh: float,
+            paraphrase_rate: float,
+    ) -> Tuple[List[Dict], int]:
         """
         Formats raw examples to desired form. Any passages/questions longer
         than max sequence length will be truncated.
@@ -189,10 +195,10 @@ class QADataset(Dataset):
         Returns:
             A list of words (string).
         """
-        max_num_answers = 0
+        max_num_answers: int = 0
+        num_paraphrased_questions: int = 0
         examples: List[Dict] = []
         for elem in elems:
-            
             # Unpack the context paragraph (passage). Shorten to max sequence length.
             passage_tokens_idxs: List[Tuple[str, int]] = elem['context_tokens']
             passage_tokens: List[str] = [
@@ -210,43 +216,53 @@ class QADataset(Dataset):
             # Each passage has several questions associated with it.
             # Additionally, each question has multiple possible answer spans.
             for qa in elem['qas']:
-
                 qid = qa['qid']
-                
-                # all paraphrase datasets have this extra key
-                # if paraphrase dataset, choose whether to get paraphrase or not
-                if 'question_is_paraphrased' in qa:
-        
-                    
-                    # if the question isn't changed at all, skip
-                    if qa['question'] == qa['question_original']:
-                        continue
-                        
-                    # calcualte paraphrase score
-                    question_tokens_original = [x[0] for x in qa['question_tokens_original']]
-                    question_tokens = [x[0] for x in qa['question_tokens']]
-                    
-                    paraphrase_score = AbstractParaphraser._calculate_paraphrase_score(question_tokens_original, question_tokens, ngram)
-                    # if score is above threshold, use paraphrase sample with some probability (sampling rate)
-                    if paraphrase_score > paraphrase_score_thresh and np.random.rand() < paraphrase_sampling_rate:
-                        question_tokens_idxs: List[Tuple[str, int]] = qa['question_tokens']
-                        question: str = qa['question']
-                    # otherwise use original tokens
-                    else:
-                        question_tokens_idxs: List[Tuple[str, int]] = qa['question_tokens_original']
-                        question: str = qa['question_original']
-                            
-                # if a dataset doesnt have paraphrases in it, we always grab question and question tokens
-                else:
+                # print(qa)
+                if 'question_is_paraphrased' not in qa or qa['question'] == qa.get('question_original'):
+                    # print('''
+                    ## We have a dataset which is not paraphrased, or a question which has an identical paraphrase.
+                    ## In both cases, keep the original question:
+                    # ''')
                     question_tokens_idxs: List[Tuple[str, int]] = qa['question_tokens']
                     question: str = qa['question']
-                        
+
+                else:
+                    ## The question has a paraphrase. Now, we must decide whether to use it, depending on the paraphrase
+                    ## score and sampling rate.
+                    question_tokens_original = [x[0] for x in qa['question_tokens_original']]
+                    question_tokens = [x[0] for x in qa['question_tokens']]
+                    paraphrase_score: float = AbstractParaphraser._calculate_paraphrase_score(
+                        question_tokens_original,
+                        question_tokens,
+                        paraphrase_score_n_gram,
+                    )
+                    # print(paraphrase_score)
+                    if paraphrase_score >= paraphrase_score_thresh and \
+                            num_paraphrased_questions < int(round(paraphrase_rate * len(elems))) and \
+                            len(question_tokens) > 0:  ## Ignore empty paraphrases.
+                        # print('''
+                        ## We are above the score threshold and we have not sampled enough, use the paraphrase.
+                        # ''')
+                        question_tokens_idxs: List[Tuple[str, int]] = qa['question_tokens']
+                        question: str = qa['question']
+                        num_paraphrased_questions += 1
+                    else:
+                        # print('''
+                        ## We are below the score threshold or we are done sampling enough, DON'T use the paraphrase.
+                        ## Otherwise use original tokens
+                        # ''')
+                        question_tokens_idxs: List[Tuple[str, int]] = qa['question_tokens_original']
+                        question: str = qa['question_original']
+
+                # print(f'question:\n{question}')
+                # print(f'\nquestion_tokens_idxs:\n{question_tokens_idxs}')
+
                 # additional processing of question
                 question_tokens: List[str] = [
                     token.lower() if lowercase_question else token
                     for (token, offset) in question_tokens_idxs[:max_question_length]
                 ]
-                
+
                 final_question_token_idx: int = min(max_question_length, len(question_tokens_idxs)) - 1
                 final_question_token_start_idx: int = question_tokens_idxs[final_question_token_idx][1]
                 final_question_token_len = len(question_tokens_idxs[final_question_token_idx][0])
@@ -273,8 +289,8 @@ class QADataset(Dataset):
                     answer_examples = answer_examples[:num_answers]
                     # print(f'Restricting from {len(answer_examples)} to {num_answers} answers')
                 examples += answer_examples
-        print(f'Max number of answers in this dataset: {max_num_answers}')
-        return examples
+        # print(f'Max number of answers in this dataset: {max_num_answers}')
+        return examples, num_paraphrased_questions
 
     @classmethod
     def _calculate_num_paraphrased_questions(cls, elems: List[Dict]) -> int:
@@ -301,8 +317,6 @@ class QADataset(Dataset):
             raise RuntimeError('error: no tokenizer registered')
 
         example_idxs = list(range(len(self.samples)))
-        if shuffle_examples:
-            shuffle(example_idxs)
 
         passages = []
         questions = []
